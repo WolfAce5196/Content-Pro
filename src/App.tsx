@@ -1461,6 +1461,181 @@ Yêu cầu prompt ảnh:
           )}
         </AnimatePresence>
       </div>
+
+      {/* Config Modal */}
+      <AnimatePresence>
+        {showConfig && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="bg-bg-secondary rounded-2xl shadow-2xl shadow-black/50 w-full max-w-2xl max-h-[85vh] flex flex-col border border-border-medium overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-secondary shrink-0">
+                <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Settings className="text-accent-primary" size={20} />
+                  Cấu hình hệ thống
+                </h2>
+                <button onClick={() => setShowConfig(false)} className="text-text-muted hover:text-status-danger hover:bg-status-danger/10 p-2 rounded-full transition-colors"><XCircle size={20} /></button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-text-secondary mb-1.5">Gemini API Key</label>
+                  <input type="password" value={config.GEMINI_API_KEY} onChange={e => setConfig({...config, GEMINI_API_KEY: e.target.value})} className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-all outline-none text-text-primary placeholder:text-text-muted" placeholder="Nhập API Key..." />
+                </div>
+                
+                <div className="p-5 bg-bg-tertiary border border-border-medium rounded-xl shadow-sm">
+                  <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
+                    <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png" alt="Sheets" className="w-5 h-5 drop-shadow-sm" />
+                    Kết nối Google Sheet
+                  </h3>
+                  
+                  {!accessToken ? (
+                    <div className="text-sm text-text-secondary mb-4 bg-bg-secondary p-3 rounded-lg border border-border-subtle">
+                      {user ? 'Phiên đăng nhập đã hết hạn quyền truy cập Google Sheet. Vui lòng đăng nhập lại.' : 'Đăng nhập bằng Google để chọn Sheet và Ghi dữ liệu trực tiếp không cần cài đặt Apps Script.'}
+                      <button onClick={handleLogin} className="mt-3 flex items-center gap-2 px-4 py-2 bg-bg-primary border border-border-medium text-text-primary rounded-lg font-medium hover:border-accent-primary hover:text-accent-primary hover:shadow-sm transition-all active:scale-95">
+                        <LogIn size={16} /> {user ? 'Cấp lại quyền truy cập' : 'Đăng nhập với Google'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-status-success mb-4 flex items-center gap-1.5 font-medium bg-status-success/10 p-2.5 rounded-lg border border-status-success/20">
+                      <div className="w-2 h-2 rounded-full bg-status-success animate-pulse"></div>
+                      Đã kết nối tài khoản: {user?.email}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={config.GOOGLE_SHEET_ID} 
+                        onChange={e => {
+                          let val = e.target.value;
+                          const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                          if (match) val = match[1];
+                          setConfig({...config, GOOGLE_SHEET_ID: val});
+                        }} 
+                        className="flex-1 p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-secondary text-text-primary" 
+                        placeholder="Nhập ID hoặc dán link Google Sheet vào đây"
+                      />
+                      <button 
+                        onClick={fetchTabs} 
+                        disabled={isFetchingTabs || !config.GOOGLE_SHEET_ID}
+                        className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary disabled:opacity-50 whitespace-nowrap transition-colors"
+                      >
+                        {isFetchingTabs ? 'Đang tải...' : 'Lấy danh sách Tab'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {availableTabs.length > 0 && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1">Chọn Tab (Sheet)</label>
+                        <div className="relative">
+                          <select 
+                            value={config.SHEET_GID} 
+                            onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
+                            className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-secondary text-text-primary"
+                          >
+                            {availableTabs.map(tab => (
+                              <option key={tab.id} value={tab.id}>{tab.title}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-2.5 text-text-muted pointer-events-none" size={16} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">
+                    Google Apps Script Web App URL <span className="text-text-muted font-normal">(Không cần thiết nếu đã Đăng nhập)</span>
+                  </label>
+                  <input type="text" value={config.GAS_WEB_APP_URL} onChange={e => setConfig({...config, GAS_WEB_APP_URL: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" placeholder="https://script.google.com/macros/s/.../exec" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">ImgBB API Key</label>
+                  <input type="password" value={config.IMGBB_API_KEY} onChange={e => setConfig({...config, IMGBB_API_KEY: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Knowledge Base (Kiến thức chuyên ngành)</label>
+                  <textarea value={config.KNOWLEDGE_BASE} onChange={e => setConfig({...config, KNOWLEDGE_BASE: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary h-24 font-mono text-sm bg-bg-tertiary text-text-primary" />
+                </div>
+                
+                <details className="mt-4 p-4 bg-bg-tertiary border border-border-medium rounded-lg text-sm text-text-secondary group">
+                  <summary className="font-bold text-text-primary cursor-pointer flex items-center justify-between">
+                    Hướng dẫn tạo Google Apps Script Web App
+                    <ChevronDown size={16} className="group-open:rotate-180 transition-transform" />
+                  </summary>
+                  <div className="mt-3">
+                    <ol className="list-decimal pl-5 space-y-1 mb-3">
+                      <li>Mở Google Sheet của bạn, chọn <strong className="text-text-primary">Extensions &gt; Apps Script</strong>.</li>
+                      <li>Xóa code cũ và dán đoạn code bên dưới vào.</li>
+                      <li>Nhấn <strong className="text-text-primary">Deploy &gt; New deployment</strong>.</li>
+                      <li>Chọn type là <strong className="text-text-primary">Web app</strong>.</li>
+                      <li>Execute as: <strong className="text-text-primary">Me</strong>. Who has access: <strong className="text-text-primary">Anyone</strong>.</li>
+                      <li>Nhấn Deploy, copy <strong className="text-text-primary">Web app URL</strong> và dán vào ô cấu hình bên trên.</li>
+                    </ol>
+                    <pre className="bg-[#0A0A0F] text-text-primary p-3 rounded overflow-x-auto text-xs font-mono border border-border-subtle">
+{`function doPost(e) {
+  var sheet = SpreadsheetApp.openById("${config.GOOGLE_SHEET_ID}");
+  var tab = sheet.getSheets().find(s => s.getSheetId() == ${config.SHEET_GID});
+  var data = JSON.parse(e.postData.contents);
+
+  data.updates.forEach(function(item) {
+    var headers = tab.getRange(1, 1, 1, tab.getLastColumn()).getValues()[0];
+    var colIndex = headers.indexOf(item.column) + 1;
+    if (colIndex > 0) {
+      tab.getRange(item.row, colIndex).setValue(item.value);
+    }
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput("App Script is running");
+}`}
+                    </pre>
+                  </div>
+                </details>
+              </div>
+
+              <div className="px-6 py-4 border-t border-border-subtle bg-bg-tertiary flex justify-end shrink-0">
+                <button onClick={async () => {
+                  setShowConfig(false);
+                  if (user) {
+                    try {
+                      await setDoc(doc(db, 'users', user.uid), { config }, { merge: true });
+                      addLog('Đã lưu cấu hình vào database.', 'success');
+                    } catch (error: any) {
+                      console.error("Error saving config:", error);
+                      addLog('Lỗi khi lưu cấu hình vào database.', 'error');
+                      if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
+                        handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+                      }
+                    }
+                  }
+                }} className="btn-primary">Lưu Cấu Hình</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
