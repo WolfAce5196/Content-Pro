@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "UserConfig": {
+      "title": "UserConfig",
+      "description": "User specific configuration for the Content Generator Pro app.",
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "object",
+          "description": "The configuration object containing API keys and sheet mappings."
+        }
+      },
+      "required": ["config"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserConfig"
+      },
+      "description": "Stores user configurations."
+    }
+  }
+}

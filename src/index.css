@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-bg-primary: #0A0A0F;
+  --color-bg-secondary: #13131A;
+  --color-bg-tertiary: #1C1C2A;
+  --color-bg-hover: #252538;
+  
+  --color-text-primary: #E8E8ED;
+  --color-text-secondary: #8B8B9E;
+  --color-text-muted: #5A5A6E;
+  
+  --color-accent-primary: #6C5CE7;
+  --color-accent-secondary: #00D2D3;
+  
+  --color-status-success: #00D2D3;
+  --color-status-warning: #FDCB6E;
+  --color-status-danger: #FF6B6B;
+  --color-status-neutral: rgba(255,255,255,0.06);
+  
+  --color-border-subtle: rgba(255,255,255,0.06);
+  --color-border-medium: rgba(255,255,255,0.1);
+  --color-border-focus: rgba(108,92,231,0.5);
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary font-sans antialiased;
+    background-image: radial-gradient(circle at 15% 50%, rgba(108, 92, 231, 0.04), transparent 25%),
+                      radial-gradient(circle at 85% 30%, rgba(0, 210, 211, 0.04), transparent 25%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply flex items-center gap-2 px-5 py-2.5 rounded-[10px] font-semibold text-white shadow-[0_4px_16px_rgba(108,92,231,0.3)] transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    background: linear-gradient(135deg, var(--color-accent-primary), #a855f7);
+  }
+  
+  .btn-secondary {
+    @apply flex items-center gap-2 px-5 py-2.5 rounded-[10px] font-medium text-text-primary bg-transparent border border-border-medium transition-all duration-200 hover:bg-bg-tertiary hover:border-border-focus hover:shadow-[0_0_20px_rgba(108,92,231,0.15)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:border-border-medium disabled:hover:shadow-none;
+  }
+
+  .btn-danger {
+    @apply flex items-center gap-2 px-5 py-2.5 rounded-[10px] font-medium text-status-danger bg-transparent border border-status-danger/30 transition-all duration-200 hover:bg-status-danger/10 hover:border-status-danger active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:border-status-danger/30;
+  }
+
+  .card-row {
+    @apply bg-bg-secondary border border-border-subtle rounded-lg mb-1 transition-all duration-200 hover:bg-bg-tertiary hover:-translate-y-[1px] hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)];
+  }
+
+  .card-row.selected {
+    @apply bg-bg-tertiary border-l-2 border-l-accent-primary border-y-border-focus border-r-border-focus;
+  }
+
+  .card-row.processing {
+    @apply border-l-2 border-l-accent-primary animate-pulse;
+  }
+
+  .badge {
+    @apply px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase flex items-center gap-1.5 w-max;
+  }
+
+  .badge-neutral {
+    @apply bg-status-neutral text-text-secondary;
+  }
+
+  .badge-processing {
+    @apply bg-accent-primary/15 text-accent-primary;
+  }
+
+  .badge-success {
+    @apply bg-status-success/15 text-status-success;
+  }
+
+  .badge-error {
+    @apply bg-status-danger/15 text-status-danger;
+  }
+
+  .input-field {
+    @apply w-full bg-bg-secondary border border-border-medium rounded-lg px-4 py-2.5 text-text-primary focus:outline-none focus:border-accent-primary focus:shadow-[0_0_20px_rgba(108,92,231,0.15)] transition-all duration-200 placeholder:text-text-muted;
+  }
+
+  .custom-checkbox {
+    @apply w-4 h-4 rounded border-border-medium bg-bg-secondary text-accent-primary focus:ring-accent-primary/50 focus:ring-offset-bg-primary transition-all duration-200 cursor-pointer;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-medium);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
