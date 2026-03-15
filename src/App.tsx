@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
-import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy } from 'lucide-react';
+import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
@@ -427,6 +427,7 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
 export default function App() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(true);
+  const [showGuide, setShowGuide] = useState(false);
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeBriefId, setActiveBriefId] = useState<string | null>(null);
@@ -847,8 +848,16 @@ export default function App() {
 
   const generateContent = async () => {
     if (selectedIds.size === 0) return;
-    if (!config.GEMINI_API_KEY) {
-      addLog('Vui lòng nhập Gemini API Key trong phần Cấu hình.', 'error');
+    
+    const missingConfigs = [];
+    if (!config.GEMINI_API_KEY) missingConfigs.push("Gemini API Key");
+    if (!config.GOOGLE_SHEET_ID) missingConfigs.push("ID Google Sheet");
+    if (!config.SHEET_GID) missingConfigs.push("Tab Sheet (GID)");
+    if (!config.COL_BRIEFS || config.COL_BRIEFS.length === 0) missingConfigs.push("Cột Brief (Đầu vào)");
+    if (!config.COL_CONTENT) missingConfigs.push("Cột Content (Đầu ra)");
+
+    if (missingConfigs.length > 0) {
+      addLog(`Thiếu cấu hình để tạo Content: ${missingConfigs.join(", ")}. Vui lòng kiểm tra lại mục Cấu hình hệ thống.`, 'error');
       setShowConfig(true);
       return;
     }
@@ -911,8 +920,13 @@ ${toneInstruction}
 
   const generateImage = async () => {
     if (selectedIds.size === 0) return;
-    if (!config.GEMINI_API_KEY) {
-      addLog('Vui lòng nhập Gemini API Key.', 'error');
+    
+    const missingConfigs = [];
+    if (!config.GEMINI_API_KEY) missingConfigs.push("Gemini API Key");
+    if (!config.COL_IMAGE) missingConfigs.push("Cột Link Ảnh (Đầu ra)");
+
+    if (missingConfigs.length > 0) {
+      addLog(`Thiếu cấu hình để tạo Ảnh AI: ${missingConfigs.join(", ")}. Vui lòng kiểm tra lại mục Cấu hình hệ thống.`, 'error');
       setShowConfig(true);
       return;
     }
@@ -992,8 +1006,13 @@ Yêu cầu prompt ảnh:
 
   const uploadImages = async () => {
     if (selectedIds.size === 0) return;
-    if (!config.IMGBB_API_KEY) {
-      addLog('Vui lòng nhập ImgBB API Key.', 'error');
+    
+    const missingConfigs = [];
+    if (!config.IMGBB_API_KEY) missingConfigs.push("ImgBB API Key");
+    if (!config.COL_IMAGE) missingConfigs.push("Cột Link Ảnh (Đầu ra)");
+
+    if (missingConfigs.length > 0) {
+      addLog(`Thiếu cấu hình để Upload ảnh: ${missingConfigs.join(", ")}. Vui lòng kiểm tra lại mục Cấu hình hệ thống.`, 'error');
       setShowConfig(true);
       return;
     }
@@ -1225,6 +1244,10 @@ Yêu cầu prompt ảnh:
             <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
               <Terminal size={18} className="shrink-0" />
               {!isSidebarCollapsed && <span>System Logs</span>}
+            </button>
+            <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
+              <BookOpen size={18} className="shrink-0" />
+              {!isSidebarCollapsed && <span>Tài Liệu Hướng Dẫn</span>}
             </button>
           </div>
 
@@ -1596,6 +1619,119 @@ Yêu cầu prompt ảnh:
           )}
         </AnimatePresence>
       </div>
+
+      {/* Guide Modal */}
+      <AnimatePresence>
+        {showGuide && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="bg-bg-secondary rounded-2xl shadow-2xl shadow-black/50 w-full max-w-3xl max-h-[85vh] flex flex-col border border-border-medium overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-secondary shrink-0">
+                <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <BookOpen className="text-accent-primary" size={20} />
+                  Tài liệu hướng dẫn sử dụng
+                </h2>
+                <button onClick={() => setShowGuide(false)} className="text-text-muted hover:text-status-danger hover:bg-status-danger/10 p-2 rounded-full transition-colors"><XCircle size={20} /></button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent space-y-8 text-left">
+                {/* Section 1: Gemini API */}
+                <section>
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center text-accent-primary">1</div>
+                    Cấu hình Gemini API Key
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      Gemini API là "bộ não" của hệ thống, dùng để tạo nội dung văn bản và prompt hình ảnh.
+                    </p>
+                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
+                      <li>Truy cập <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline inline-flex items-center gap-1">Google AI Studio <ExternalLink size={12}/></a>.</li>
+                      <li>Nhấn nút <strong>"Create API key"</strong>.</li>
+                      <li>Chọn dự án và sao chép mã API Key (có dạng <code>AIza...</code>).</li>
+                      <li>Dán vào ô <strong>Gemini API Key</strong> trong phần Cấu hình hệ thống.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                {/* Section 2: Google Sheets */}
+                <section>
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-status-success/10 flex items-center justify-center text-status-success">2</div>
+                    Kết nối Google Sheet
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      Hệ thống cần quyền truy cập vào Google Sheet để đọc Brief và ghi lại kết quả.
+                    </p>
+                    <div className="bg-bg-tertiary p-4 rounded-xl border border-border-subtle">
+                      <h4 className="text-sm font-bold text-text-primary mb-2">Các bước thực hiện:</h4>
+                      <ol className="list-decimal pl-5 text-sm text-text-secondary space-y-2">
+                        <li>Nhấn <strong>"Đăng nhập với Google"</strong> trong phần Cấu hình.</li>
+                        <li>Cấp quyền truy cập vào Google Drive và Google Sheets khi được hỏi.</li>
+                        <li>Chọn <strong>Bảng tính (Spreadsheet)</strong> từ danh sách hiện ra.</li>
+                        <li>Chọn <strong>Tab (Sheet nhỏ)</strong> chứa dữ liệu của bạn.</li>
+                        <li>Thiết lập các cột tương ứng (Cột Brief, Cột Content, Cột Ảnh).</li>
+                      </ol>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Section 3: ImgBB */}
+                <section>
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-accent-secondary/10 flex items-center justify-center text-accent-secondary">3</div>
+                    Cấu hình ImgBB API Key
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      Dùng để lưu trữ ảnh AI sinh ra và lấy link public để dán vào Google Sheet.
+                    </p>
+                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
+                      <li>Truy cập <a href="https://imgbb.com/signup" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline inline-flex items-center gap-1">ImgBB <ExternalLink size={12}/></a> để đăng ký tài khoản.</li>
+                      <li>Sau khi đăng nhập, vào trang <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline inline-flex items-center gap-1">API ImgBB <ExternalLink size={12}/></a>.</li>
+                      <li>Nhấn <strong>"Add API Key"</strong> và sao chép mã.</li>
+                      <li>Dán vào ô <strong>ImgBB API Key</strong> trong phần Cấu hình hệ thống.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                {/* Section 4: Google Apps Script (Tùy chọn) */}
+                <section>
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-status-warning/10 flex items-center justify-center text-status-warning">4</div>
+                    Google Apps Script (Dự phòng)
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      Nếu việc ghi dữ liệu trực tiếp qua API gặp lỗi, bạn có thể sử dụng Web App URL để ghi dữ liệu.
+                    </p>
+                    <div className="p-3 bg-status-warning/5 border border-status-warning/20 rounded-lg">
+                      <p className="text-xs text-status-warning italic">
+                        * Hướng dẫn chi tiết và mã nguồn đã được cung cấp sẵn trong phần cuối của mục Cấu hình hệ thống.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div className="px-6 py-4 border-t border-border-subtle bg-bg-tertiary flex justify-end shrink-0">
+                <button onClick={() => setShowGuide(false)} className="btn-primary">Đã hiểu</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Config Modal */}
       <AnimatePresence>
