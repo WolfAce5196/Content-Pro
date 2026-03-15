@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
 import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers } from 'lucide-react';
-import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
 
 enum OperationType {
@@ -466,6 +466,23 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Test Firestore connection
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error: any) {
+        if (error.message?.includes('the client is offline')) {
+          addLog('Lỗi kết nối Firestore: Client đang offline. Vui lòng kiểm tra cấu hình Firebase.', 'error');
+        }
+      }
+    };
+    testConnection();
+
+    // Set persistence explicitly
+    setPersistence(auth, browserLocalPersistence).catch(err => {
+      console.error("Error setting persistence:", err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -576,18 +593,33 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
-      googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
+      addLog('Đang mở cửa sổ đăng nhập Google...', 'info');
       const result = await signInWithPopup(auth, googleProvider);
+      
       // @ts-ignore
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential && credential.accessToken) {
         setAccessToken(credential.accessToken);
-        addLog('Đăng nhập Google thành công.', 'success');
+        addLog('Đăng nhập Google thành công và đã cấp quyền truy cập Sheet.', 'success');
         fetchSpreadsheets(credential.accessToken);
+      } else {
+        addLog('Đăng nhập thành công nhưng không nhận được Access Token. Vui lòng thử lại.', 'error');
       }
     } catch (error: any) {
-      addLog(`Lỗi đăng nhập: ${error.message}`, 'error');
+      console.error("Login error:", error);
+      let errorMsg = error.message;
+      
+      if (error.code === 'auth/popup-blocked') {
+        errorMsg = 'Trình duyệt đã chặn cửa sổ popup. Vui lòng cho phép popup cho trang web này.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMsg = 'Yêu cầu đăng nhập đã bị hủy hoặc cửa sổ popup bị đóng.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMsg = 'Lỗi mạng. Vui lòng kiểm tra kết nối internet.';
+      } else if (error.code === 'auth/internal-error') {
+        errorMsg = 'Lỗi nội bộ Firebase. Vui lòng thử lại sau.';
+      }
+      
+      addLog(`Lỗi đăng nhập: ${errorMsg}`, 'error');
     }
   };
 
