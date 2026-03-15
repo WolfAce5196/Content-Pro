@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
-import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
@@ -435,6 +435,8 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [availableTabs, setAvailableTabs] = useState<{id: number, title: string}[]>([]);
   const [isFetchingTabs, setIsFetchingTabs] = useState(false);
+  const [availableSpreadsheets, setAvailableSpreadsheets] = useState<{id: string, name: string}[]>([]);
+  const [isFetchingSpreadsheets, setIsFetchingSpreadsheets] = useState(false);
   const [availableHeaders, setAvailableHeaders] = useState<string[]>([]);
   const [isFetchingHeaders, setIsFetchingHeaders] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -445,27 +447,52 @@ export default function App() {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(true);
 
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
+
   const addLog = (msg: string, type: 'info'|'error'|'success' = 'info') => {
-    setLogs(prev => [{ time: new Date().toLocaleTimeString(), msg, type }, ...prev].slice(0, 50));
+    const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+    setLogs(prev => [{ time, msg, type }, ...prev].slice(0, 100));
+  };
+
+  const renderLogMessage = (msg: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = msg.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return <a key={i} href={part} target="_blank" rel="noreferrer" className="underline text-accent-primary break-all">{part}</a>;
+      }
+      return part;
+    });
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        setIsConfigLoading(true);
         try {
           const docRef = doc(db, 'users', currentUser.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists() && docSnap.data().config) {
-            setConfig(prev => ({ ...prev, ...docSnap.data().config }));
+            const loadedConfig = docSnap.data().config;
+            setConfig(prev => ({ ...prev, ...loadedConfig }));
             addLog('Đã tải cấu hình từ database.', 'success');
+            
+            // Automatically close config modal if essential keys are present
+            if (loadedConfig.GEMINI_API_KEY && loadedConfig.GOOGLE_SHEET_ID) {
+              setShowConfig(false);
+            }
           }
         } catch (error: any) {
           console.error("Error loading config:", error);
           if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
             handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
           }
+        } finally {
+          setIsConfigLoading(false);
         }
+      } else {
+        setShowConfig(true);
       }
     });
     return () => unsubscribe();
@@ -524,15 +551,40 @@ export default function App() {
     }
   }, [config.SHEET_GID, availableTabs, accessToken]);
 
+  const fetchSpreadsheets = async (token: string) => {
+    setIsFetchingSpreadsheets(true);
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name)&orderBy=modifiedTime desc`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        if (errorData.error?.message?.includes('API has not been used')) {
+          throw new Error('Google Drive API chưa được bật. Vui lòng bật tại: https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=112977840443');
+        }
+        throw new Error('Không thể tải danh sách Google Sheet.');
+      }
+      const data = await res.json();
+      setAvailableSpreadsheets(data.files || []);
+      addLog(`Đã tải ${data.files?.length || 0} Google Sheets.`, 'success');
+    } catch (error: any) {
+      addLog(`Lỗi tải danh sách Sheets: ${error.message}`, 'error');
+    } finally {
+      setIsFetchingSpreadsheets(false);
+    }
+  };
+
   const handleLogin = async () => {
     try {
       googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
+      googleProvider.addScope('https://www.googleapis.com/auth/drive.readonly');
       const result = await signInWithPopup(auth, googleProvider);
       // @ts-ignore
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential && credential.accessToken) {
         setAccessToken(credential.accessToken);
         addLog('Đăng nhập Google thành công.', 'success');
+        fetchSpreadsheets(credential.accessToken);
       }
     } catch (error: any) {
       addLog(`Lỗi đăng nhập: ${error.message}`, 'error');
@@ -545,11 +597,19 @@ export default function App() {
       setAccessToken(null);
       setUser(null);
       setAvailableTabs([]);
+      setConfig(DEFAULT_CONFIG);
+      setShowConfig(true);
       addLog('Đã đăng xuất.', 'info');
     } catch (error: any) {
       addLog(`Lỗi đăng xuất: ${error.message}`, 'error');
     }
   };
+
+  useEffect(() => {
+    if (config.GOOGLE_SHEET_ID && accessToken) {
+      fetchTabs();
+    }
+  }, [config.GOOGLE_SHEET_ID]);
 
   const fetchTabs = async () => {
     if (!config.GOOGLE_SHEET_ID) {
@@ -568,15 +628,17 @@ export default function App() {
       
       const res = await fetch(url, { headers });
       if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
         let errorMsg = res.status === 401 || res.status === 403 
           ? 'Không có quyền truy cập Sheet. Vui lòng đăng nhập Google.' 
           : 'Không thể tải thông tin Sheet. Kiểm tra lại ID.';
-        try {
-          const errorData = await res.json();
-          if (errorData.error && errorData.error.message) {
-            errorMsg = `Lỗi từ Google: ${errorData.error.message}`;
-          }
-        } catch (e) {}
+        
+        if (errorData.error?.message?.includes('API has not been used')) {
+          errorMsg = 'Google Sheets API chưa được bật. Vui lòng bật tại: https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=112977840443';
+        } else if (errorData.error?.message) {
+          errorMsg = `Lỗi từ Google: ${errorData.error.message}`;
+        }
+        
         throw new Error(errorMsg);
       }
       
@@ -1091,6 +1153,21 @@ Yêu cầu prompt ảnh:
 
   return (
     <div className="h-screen w-screen bg-bg-primary flex overflow-hidden font-sans text-text-primary selection:bg-accent-primary/30 selection:text-accent-primary">
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {isConfigLoading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-bg-primary/80 backdrop-blur-sm z-[200] flex flex-col items-center justify-center gap-4"
+          >
+            <Loader2 className="w-10 h-10 text-accent-primary animate-spin" />
+            <p className="text-sm font-medium text-text-secondary">Đang tải cấu hình...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <motion.aside 
         initial={false}
@@ -1155,16 +1232,40 @@ Yêu cầu prompt ảnh:
 
         {/* User / Connection Status */}
         <div className="p-4 border-t border-border-subtle shrink-0">
-          {accessToken ? (
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-bg-tertiary border border-border-medium flex items-center justify-center shrink-0">
-                <div className="w-2 h-2 rounded-full bg-status-success animate-pulse"></div>
-              </div>
-              {!isSidebarCollapsed && (
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-xs font-medium text-text-primary truncate">{user?.email}</span>
-                  <span className="text-[10px] text-text-muted">Đã kết nối Google</span>
+          {user ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-bg-tertiary border border-border-medium flex items-center justify-center shrink-0 overflow-hidden">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-2 h-2 rounded-full bg-status-success animate-pulse"></div>
+                  )}
                 </div>
+                {!isSidebarCollapsed && (
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="text-xs font-medium text-text-primary truncate">{user.displayName || user.email}</span>
+                    <span className="text-[10px] text-text-muted">{accessToken ? 'Đã kết nối Google' : 'Chưa kết nối Google Sheet'}</span>
+                  </div>
+                )}
+              </div>
+              
+              {!accessToken && !isSidebarCollapsed && (
+                <button 
+                  onClick={handleLogin} 
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/20 rounded-lg text-xs font-medium hover:bg-accent-primary/20 transition-colors"
+                >
+                  <Layers size={14} /> Kết nối Google Sheet
+                </button>
+              )}
+              
+              {!isSidebarCollapsed && (
+                <button 
+                  onClick={handleLogout} 
+                  className="w-full flex items-center justify-center gap-2 py-1.5 text-text-muted hover:text-status-danger transition-colors text-[10px] font-medium uppercase tracking-wider"
+                >
+                  <LogOut size={12} /> Đăng xuất
+                </button>
               )}
             </div>
           ) : (
@@ -1446,7 +1547,7 @@ Yêu cầu prompt ảnh:
                         {log.type === 'error' && <span className="mr-2">✖</span>}
                         {log.type === 'success' && <span className="mr-2">✓</span>}
                         {log.type === 'info' && <span className="mr-2">❯</span>}
-                        {log.msg}
+                        {renderLogMessage(log.msg)}
                       </span>
                     </motion.div>
                   ))}
@@ -1487,11 +1588,27 @@ Yêu cầu prompt ảnh:
               </div>
               
               <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent space-y-5">
+                <div className="p-3 bg-accent-primary/10 border border-accent-primary/20 rounded-xl flex items-start gap-3">
+                  <AlertCircle className="text-accent-primary shrink-0 mt-0.5" size={18} />
+                  <p className="text-sm text-text-primary font-medium">
+                    Khuyến nghị: Hãy thao tác và dùng web trên máy tính để đảm bảo công việc ổn định nhất.
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-text-secondary mb-1.5">Gemini API Key</label>
                   <input type="password" value={config.GEMINI_API_KEY} onChange={e => setConfig({...config, GEMINI_API_KEY: e.target.value})} className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-all outline-none text-text-primary placeholder:text-text-muted" placeholder="Nhập API Key..." />
+                  <details className="mt-2 text-xs text-text-muted group">
+                    <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
+                      <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
+                      Cách lấy Gemini API Key?
+                    </summary>
+                    <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg">
+                      Truy cập <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-primary underline">Google AI Studio</a>, đăng nhập và nhấn "Create API key" để lấy mã.
+                    </div>
+                  </details>
                 </div>
-                
+
                 <div className="p-5 bg-bg-tertiary border border-border-medium rounded-xl shadow-sm">
                   <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                     <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png" alt="Sheets" className="w-5 h-5 drop-shadow-sm" />
@@ -1509,67 +1626,164 @@ Yêu cầu prompt ảnh:
                     <div className="text-sm text-status-success mb-4 flex items-center gap-1.5 font-medium bg-status-success/10 p-2.5 rounded-lg border border-status-success/20">
                       <div className="w-2 h-2 rounded-full bg-status-success animate-pulse"></div>
                       Đã kết nối tài khoản: {user?.email}
+                      <button onClick={() => accessToken && fetchSpreadsheets(accessToken)} className="ml-auto text-xs text-accent-primary hover:underline">Làm mới danh sách</button>
                     </div>
                   )}
 
                   <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        value={config.GOOGLE_SHEET_ID} 
-                        onChange={e => {
-                          let val = e.target.value;
-                          const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                          if (match) val = match[1];
-                          setConfig({...config, GOOGLE_SHEET_ID: val});
-                        }} 
-                        className="flex-1 p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-secondary text-text-primary" 
-                        placeholder="Nhập ID hoặc dán link Google Sheet vào đây"
-                      />
-                      <button 
-                        onClick={fetchTabs} 
-                        disabled={isFetchingTabs || !config.GOOGLE_SHEET_ID}
-                        className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary disabled:opacity-50 whitespace-nowrap transition-colors"
-                      >
-                        {isFetchingTabs ? 'Đang tải...' : 'Lấy danh sách Tab'}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {availableTabs.length > 0 && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">Chọn Tab (Sheet)</label>
-                        <div className="relative">
-                          <select 
-                            value={config.SHEET_GID} 
-                            onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
-                            className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-secondary text-text-primary"
+                    {accessToken && (
+                      <div className="p-4 bg-bg-secondary border border-border-subtle rounded-xl space-y-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
+                            <Search size={14} className="text-accent-primary" />
+                            1. Chọn Bảng tính (Spreadsheet)
+                          </label>
+                          
+                          {isFetchingSpreadsheets ? (
+                            <div className="flex items-center gap-2 text-sm text-text-muted p-2 bg-bg-tertiary rounded-lg border border-border-subtle italic">
+                              <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
+                              Đang tìm kiếm trong Drive của bạn...
+                            </div>
+                          ) : availableSpreadsheets.length > 0 ? (
+                            <div className="relative">
+                              <select 
+                                value={config.GOOGLE_SHEET_ID} 
+                                onChange={e => setConfig({...config, GOOGLE_SHEET_ID: e.target.value})}
+                                className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
+                              >
+                                <option value="">-- Chọn một Bảng tính từ Drive --</option>
+                                {availableSpreadsheets.map(ss => (
+                                  <option key={ss.id} value={ss.id}>{ss.name}</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
+                            </div>
+                          ) : (
+                            <div className="text-xs text-status-warning p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg">
+                              Không tìm thấy file Google Sheet nào trong Drive. 
+                              <button onClick={() => accessToken && fetchSpreadsheets(accessToken)} className="ml-2 underline font-bold">Thử lại</button>
+                            </div>
+                          )}
+                          
+                          <div className="mt-2">
+                            <details className="text-xs text-text-muted group">
+                              <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
+                                <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
+                                Hoặc nhập ID/Link thủ công
+                              </summary>
+                              <input 
+                                type="text" 
+                                value={config.GOOGLE_SHEET_ID} 
+                                onChange={e => {
+                                  let val = e.target.value;
+                                  const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                                  if (match) val = match[1];
+                                  setConfig({...config, GOOGLE_SHEET_ID: val});
+                                }} 
+                                className="w-full mt-2 p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary text-xs" 
+                                placeholder="Dán link Google Sheet vào đây nếu không thấy trong danh sách"
+                              />
+                            </details>
+                          </div>
+                        </div>
+
+                        {config.GOOGLE_SHEET_ID && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="pt-4 border-t border-border-subtle"
                           >
-                            {availableTabs.map(tab => (
-                              <option key={tab.id} value={tab.id}>{tab.title}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-2.5 text-text-muted pointer-events-none" size={16} />
+                            <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
+                              <Layers size={14} className="text-accent-primary" />
+                              2. Chọn Tab (Sheet nhỏ)
+                            </label>
+                            
+                            {isFetchingTabs ? (
+                              <div className="flex items-center gap-2 text-sm text-text-muted p-2 bg-bg-tertiary rounded-lg border border-border-subtle italic">
+                                <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
+                                Đang lấy danh sách các tab...
+                              </div>
+                            ) : availableTabs.length > 0 ? (
+                              <div className="relative">
+                                <select 
+                                  value={config.SHEET_GID} 
+                                  onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
+                                  className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
+                                >
+                                  {availableTabs.map(tab => (
+                                    <option key={tab.id} value={tab.id}>{tab.title}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={fetchTabs}
+                                className="w-full p-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/30 rounded-lg hover:bg-accent-primary/20 transition-colors text-sm font-medium"
+                              >
+                                Nhấn để tải danh sách Tab
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+
+                    {!accessToken && (
+                      <div>
+                        <label className="block text-sm font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL (Thủ công)</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={config.GOOGLE_SHEET_ID} 
+                            onChange={e => {
+                              let val = e.target.value;
+                              const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                              if (match) val = match[1];
+                              setConfig({...config, GOOGLE_SHEET_ID: val});
+                            }} 
+                            className="flex-1 p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-secondary text-text-primary" 
+                            placeholder="Nhập ID hoặc dán link Google Sheet"
+                          />
+                          <button 
+                            onClick={fetchTabs} 
+                            disabled={isFetchingTabs || !config.GOOGLE_SHEET_ID}
+                            className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary disabled:opacity-50 whitespace-nowrap transition-colors"
+                          >
+                            {isFetchingTabs ? 'Đang tải...' : 'Lấy Tab'}
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                   </div>
-                </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">
-                    Google Apps Script Web App URL <span className="text-text-muted font-normal">(Không cần thiết nếu đã Đăng nhập)</span>
-                  </label>
-                  <input type="text" value={config.GAS_WEB_APP_URL} onChange={e => setConfig({...config, GAS_WEB_APP_URL: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" placeholder="https://script.google.com/macros/s/.../exec" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">ImgBB API Key</label>
-                  <input type="password" value={config.IMGBB_API_KEY} onChange={e => setConfig({...config, IMGBB_API_KEY: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Google Apps Script Web App URL</label>
+                <input type="text" value={config.GAS_WEB_APP_URL} onChange={e => setConfig({...config, GAS_WEB_APP_URL: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" placeholder="https://script.google.com/macros/s/.../exec" />
+                <details className="mt-2 text-xs text-text-muted group">
+                  <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
+                    <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
+                    Cách lấy GAS Web App URL?
+                  </summary>
+                  <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg">
+                    Xem hướng dẫn chi tiết ở phần "Hướng dẫn tạo Google Apps Script Web App" phía dưới cùng.
+                  </div>
+                </details>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">ImgBB API Key</label>
+                <input type="password" value={config.IMGBB_API_KEY} onChange={e => setConfig({...config, IMGBB_API_KEY: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" />
+                <details className="mt-2 text-xs text-text-muted group">
+                  <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
+                    <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
+                    Cách lấy ImgBB API Key?
+                  </summary>
+                  <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg">
+                    Đăng ký tài khoản tại <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-accent-primary underline">ImgBB API</a> và tạo API key để tải ảnh lên.
+                  </div>
+                </details>
+              </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-1">Knowledge Base (Kiến thức chuyên ngành)</label>
                   <textarea value={config.KNOWLEDGE_BASE} onChange={e => setConfig({...config, KNOWLEDGE_BASE: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary h-24 font-mono text-sm bg-bg-tertiary text-text-primary" />
@@ -1591,15 +1805,21 @@ Yêu cầu prompt ảnh:
                     </ol>
                     <pre className="bg-[#0A0A0F] text-text-primary p-3 rounded overflow-x-auto text-xs font-mono border border-border-subtle">
 {`function doPost(e) {
-  var sheet = SpreadsheetApp.openById("${config.GOOGLE_SHEET_ID}");
-  var tab = sheet.getSheets().find(s => s.getSheetId() == ${config.SHEET_GID});
-  var data = JSON.parse(e.postData.contents);
+  var payload = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.openById(payload.sheetId || "${config.GOOGLE_SHEET_ID}");
+  var tab = sheet.getSheets().find(s => s.getSheetId() == (payload.tabId || ${config.SHEET_GID}));
+  var data = payload.data;
+  
+  var headers = tab.getRange(1, 1, 1, tab.getLastColumn()).getValues()[0];
+  var contentColIdx = headers.indexOf(payload.contentCol) + 1;
+  var imageColIdx = headers.indexOf(payload.imageCol) + 1;
 
-  data.updates.forEach(function(item) {
-    var headers = tab.getRange(1, 1, 1, tab.getLastColumn()).getValues()[0];
-    var colIndex = headers.indexOf(item.column) + 1;
-    if (colIndex > 0) {
-      tab.getRange(item.row, colIndex).setValue(item.value);
+  data.forEach(function(item) {
+    if (contentColIdx > 0 && item.content) {
+      tab.getRange(item.rowIndex, contentColIdx).setValue(item.content);
+    }
+    if (imageColIdx > 0 && item.imageUrl) {
+      tab.getRange(item.rowIndex, imageColIdx).setValue(item.imageUrl);
     }
   });
 
