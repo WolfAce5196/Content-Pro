@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
-import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers } from 'lucide-react';
+import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
@@ -617,6 +617,8 @@ export default function App() {
         errorMsg = 'Lỗi mạng. Vui lòng kiểm tra kết nối internet.';
       } else if (error.code === 'auth/internal-error') {
         errorMsg = 'Lỗi nội bộ Firebase. Vui lòng thử lại sau.';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMsg = `Tên miền "${window.location.hostname}" chưa được cấp quyền trong Firebase Console. Hãy copy tên miền này và thêm vào mục "Authorized domains" trong cài đặt Authentication của Firebase.`;
       }
       
       addLog(`Lỗi đăng nhập: ${errorMsg}`, 'error');
@@ -1650,9 +1652,26 @@ Yêu cầu prompt ảnh:
                   {!accessToken ? (
                     <div className="text-sm text-text-secondary mb-4 bg-bg-secondary p-3 rounded-lg border border-border-subtle">
                       {user ? 'Phiên đăng nhập đã hết hạn quyền truy cập Google Sheet. Vui lòng đăng nhập lại.' : 'Đăng nhập bằng Google để chọn Sheet và Ghi dữ liệu trực tiếp không cần cài đặt Apps Script.'}
-                      <button onClick={handleLogin} className="mt-3 flex items-center gap-2 px-4 py-2 bg-bg-primary border border-border-medium text-text-primary rounded-lg font-medium hover:border-accent-primary hover:text-accent-primary hover:shadow-sm transition-all active:scale-95">
-                        <LogIn size={16} /> {user ? 'Cấp lại quyền truy cập' : 'Đăng nhập với Google'}
-                      </button>
+                      
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={handleLogin} className="flex items-center gap-2 px-4 py-2 bg-bg-primary border border-border-medium text-text-primary rounded-lg font-medium hover:border-accent-primary hover:text-accent-primary hover:shadow-sm transition-all active:scale-95">
+                          <LogIn size={16} /> {user ? 'Cấp lại quyền truy cập' : 'Đăng nhập với Google'}
+                        </button>
+                        
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(window.location.hostname);
+                            addLog(`Đã sao chép tên miền: ${window.location.hostname}`, 'info');
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-bg-primary border border-border-medium text-text-muted rounded-lg text-xs hover:text-text-primary transition-all"
+                        >
+                          <Copy size={14} /> Sao chép tên miền hiện tại
+                        </button>
+                      </div>
+                      
+                      <p className="mt-2 text-[10px] text-text-muted italic">
+                        * Nếu gặp lỗi "unauthorized-domain", hãy sao chép tên miền trên và thêm vào "Authorized domains" trong Firebase Console.
+                      </p>
                     </div>
                   ) : (
                     <div className="text-sm text-status-success mb-4 flex items-center gap-1.5 font-medium bg-status-success/10 p-2.5 rounded-lg border border-status-success/20">
