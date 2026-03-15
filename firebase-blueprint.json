@@ -1,24 +1,25 @@
 {
   "entities": {
     "UserConfig": {
-      "title": "UserConfig",
-      "description": "User specific configuration for the Content Generator Pro app.",
+      "title": "User Configuration",
+      "description": "Stores user-specific app settings and API keys",
       "type": "object",
       "properties": {
-        "config": {
-          "type": "object",
-          "description": "The configuration object containing API keys and sheet mappings."
-        }
+        "GEMINI_API_KEY": { "type": "string" },
+        "GOOGLE_SHEET_ID": { "type": "string" },
+        "GAS_WEB_APP_URL": { "type": "string" },
+        "IMGBB_API_KEY": { "type": "string" },
+        "selectedTab": { "type": "string" },
+        "columnMapping": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["config"]
+      "required": ["GEMINI_API_KEY", "GOOGLE_SHEET_ID"]
     }
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/UserConfig"
-      },
-      "description": "Stores user configurations."
+    "userConfigs/{userId}": {
+      "schema": "UserConfig",
+      "description": "User specific configurations"
     }
   }
 }

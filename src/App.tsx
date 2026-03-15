@@ -488,10 +488,10 @@ export default function App() {
       if (currentUser) {
         setIsConfigLoading(true);
         try {
-          const docRef = doc(db, 'users', currentUser.uid);
+          const docRef = doc(db, 'userConfigs', currentUser.uid);
           const docSnap = await getDoc(docRef);
-          if (docSnap.exists() && docSnap.data().config) {
-            const loadedConfig = docSnap.data().config;
+          if (docSnap.exists()) {
+            const loadedConfig = docSnap.data();
             setConfig(prev => ({ ...prev, ...loadedConfig }));
             addLog('Đã tải cấu hình từ database.', 'success');
             
@@ -503,7 +503,7 @@ export default function App() {
         } catch (error: any) {
           console.error("Error loading config:", error);
           if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
-            handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
+            handleFirestoreError(error, OperationType.GET, `userConfigs/${currentUser.uid}`);
           }
         } finally {
           setIsConfigLoading(false);
@@ -1872,13 +1872,13 @@ function doGet(e) {
                   setShowConfig(false);
                   if (user) {
                     try {
-                      await setDoc(doc(db, 'users', user.uid), { config }, { merge: true });
+                      await setDoc(doc(db, 'userConfigs', user.uid), config, { merge: true });
                       addLog('Đã lưu cấu hình vào database.', 'success');
                     } catch (error: any) {
                       console.error("Error saving config:", error);
                       addLog('Lỗi khi lưu cấu hình vào database.', 'error');
                       if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
-                        handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+                        handleFirestoreError(error, OperationType.WRITE, `userConfigs/${user.uid}`);
                       }
                     }
                   }
