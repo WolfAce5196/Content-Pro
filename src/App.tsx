@@ -79,7 +79,9 @@ const DEFAULT_CONFIG = {
   COL_BRIEFS: ["Tóm Tắt", "Ghi chú"],
   COL_TONE: "",
   COL_CONTENT: "Content chi tiết",
-  COL_IMAGE: "Link Ảnh/Video"
+  COL_IMAGE: "Link Ảnh/Video",
+  FILTER_TAB: "all" as 'all' | 'done' | 'pending' | 'incomplete',
+  SEARCH_QUERY: ""
 };
 
 interface HistoryItem {
@@ -101,7 +103,7 @@ interface Brief {
   content: string;
   imageUrl: string;
   imageBase64?: string;
-  status: 'pending' | 'content_generated' | 'image_generated' | 'video_generated' | 'uploaded' | 'saved' | 'error';
+  status: 'pending' | 'content_generated' | 'image_generated' | 'video_generated' | 'uploaded' | 'saved' | 'done' | 'incomplete' | 'error';
   statusDetail?: string;
   // New fields
   briefMedia?: string;
@@ -936,7 +938,13 @@ export default function App() {
   const [isDataLoading, setIsDataLoading] = useState(false);
 
   // New states for enhancements
-  const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete'>(config.FILTER_TAB || 'all');
+
+  useEffect(() => {
+    if (config.FILTER_TAB) {
+      setFilterTab(config.FILTER_TAB);
+    }
+  }, [config.FILTER_TAB]);
   const [historyBriefId, setHistoryBriefId] = useState<string | null>(null);
 
   const addLog = (msg: string, type: 'info'|'error'|'success' = 'info') => {
@@ -1578,17 +1586,35 @@ export default function App() {
         const id = `row_${i + 1}_${config.GOOGLE_SHEET_ID.slice(-5)}_${config.SHEET_GID}`;
         const existingBrief = briefs.find(b => b.id === id);
         
+        const rowContent = contentIdx !== -1 ? (row[contentIdx] || '') : '';
+        const rowImage = imageIdx !== -1 ? (row[imageIdx] || '') : '';
+        
+        // Determine initial status if not in memory
+        let initialStatus: Brief['status'] = 'pending';
+        let initialStatusDetail = 'Chưa xử lý';
+        
+        if (existingBrief) {
+          initialStatus = existingBrief.status;
+          initialStatusDetail = existingBrief.statusDetail;
+        } else if (rowContent && rowImage) {
+          initialStatus = 'done';
+          initialStatusDetail = 'Hoàn Thành';
+        } else if (rowContent || rowImage) {
+          initialStatus = 'incomplete';
+          initialStatusDetail = 'Cần Hoàn Thiện';
+        }
+
         loadedBriefs.push({
           id,
           rowIndex: i + 1,
           rawData,
           briefData,
           tone: toneIdx !== -1 ? (row[toneIdx] || '') : '',
-          content: existingBrief && existingBrief.status !== 'pending' ? existingBrief.content : (contentIdx !== -1 ? (row[contentIdx] || '') : ''),
-          imageUrl: existingBrief && existingBrief.status !== 'pending' ? existingBrief.imageUrl : (imageIdx !== -1 ? (row[imageIdx] || '') : ''),
+          content: existingBrief && existingBrief.status !== 'pending' ? existingBrief.content : rowContent,
+          imageUrl: existingBrief && existingBrief.status !== 'pending' ? existingBrief.imageUrl : rowImage,
           imageBase64: existingBrief ? existingBrief.imageBase64 : undefined,
-          status: existingBrief ? existingBrief.status : 'pending',
-          statusDetail: existingBrief ? existingBrief.statusDetail : 'Chưa xử lý',
+          status: initialStatus,
+          statusDetail: initialStatusDetail,
           briefMedia: existingBrief && existingBrief.briefMedia ? existingBrief.briefMedia : (briefMediaIdx !== -1 ? (row[briefMediaIdx] || '') : ''),
           mediaFormat: existingBrief ? existingBrief.mediaFormat : 'Ảnh',
           mediaSize: existingBrief ? existingBrief.mediaSize : '1:1',
@@ -2258,9 +2284,9 @@ YÊU CẦU PROMPT:
 
   const filteredBriefs = briefs.filter(brief => {
     if (filterTab === 'all') return true;
-    if (filterTab === 'done') return brief.status === 'saved' || brief.statusDetail === 'Hoàn Thành';
-    if (filterTab === 'pending') return brief.status === 'pending' || brief.statusDetail === 'Chưa Xử Lý';
-    if (filterTab === 'incomplete') return brief.status !== 'pending' && brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành';
+    if (filterTab === 'done') return brief.status === 'done' || brief.status === 'saved' || brief.statusDetail === 'Hoàn Thành';
+    if (filterTab === 'pending') return brief.status === 'pending' || brief.statusDetail === 'Chưa Xử Lý' || brief.statusDetail === 'Chưa xử lý';
+    if (filterTab === 'incomplete') return brief.status === 'incomplete' || (brief.status !== 'pending' && brief.status !== 'done' && brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành');
     return true;
   });
 
@@ -2521,7 +2547,19 @@ YÊU CẦU PROMPT:
                   ].map(tab => (
                     <button
                       key={tab.id}
-                      onClick={() => setFilterTab(tab.id as any)}
+                      onClick={async () => {
+                        const newTab = tab.id as any;
+                        setFilterTab(newTab);
+                        const newConfig = { ...config, FILTER_TAB: newTab };
+                        setConfig(newConfig);
+                        if (user) {
+                          try {
+                            await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
+                          } catch (error: any) {
+                            console.error("Error saving filter config:", error);
+                          }
+                        }
+                      }}
                       className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                         filterTab === tab.id 
                           ? 'bg-accent-primary text-white shadow-sm' 
