@@ -7,19 +7,36 @@
       "properties": {
         "GEMINI_API_KEY": { "type": "string" },
         "GOOGLE_SHEET_ID": { "type": "string" },
+        "SHEET_GID": { "type": "string" },
         "GAS_WEB_APP_URL": { "type": "string" },
         "IMGBB_API_KEY": { "type": "string" },
-        "selectedTab": { "type": "string" },
-        "columnMapping": { "type": "object" },
+        "COL_BRIEFS": { "type": "array", "items": { "type": "string" } },
+        "COL_TONE": { "type": "string" },
+        "COL_CONTENT": { "type": "string" },
+        "COL_IMAGE": { "type": "string" },
+        "KNOWLEDGE_BASE": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["GEMINI_API_KEY", "GOOGLE_SHEET_ID"]
+      }
+    },
+    "UserData": {
+      "title": "User Data",
+      "description": "Stores user session data like briefs and logs",
+      "type": "object",
+      "properties": {
+        "briefs": { "type": "array", "items": { "type": "object" } },
+        "logs": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
     "userConfigs/{userId}": {
       "schema": "UserConfig",
       "description": "User specific configurations"
+    },
+    "userData/{userId}": {
+      "schema": "UserData",
+      "description": "User session data (briefs and logs)"
     }
   }
 }

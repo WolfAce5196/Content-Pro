@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
-import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink } from 'lucide-react';
+import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink, History, Upload, Info } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
@@ -70,6 +70,16 @@ const DEFAULT_CONFIG = {
   COL_IMAGE: "Link Ảnh/Video"
 };
 
+interface HistoryItem {
+  id: string;
+  content: string;
+  imageUrl: string;
+  imageBase64?: string;
+  timestamp: string;
+  status: string;
+  statusDetail?: string;
+}
+
 interface Brief {
   id: string;
   rowIndex: number;
@@ -79,7 +89,14 @@ interface Brief {
   content: string;
   imageUrl: string;
   imageBase64?: string;
-  status: 'pending' | 'content_generated' | 'image_generated' | 'uploaded' | 'saved' | 'error';
+  status: 'pending' | 'content_generated' | 'image_generated' | 'video_generated' | 'uploaded' | 'saved' | 'error';
+  statusDetail?: string;
+  // New fields
+  briefMedia?: string;
+  mediaFormat?: 'Ảnh' | 'Video';
+  mediaSize?: string;
+  mediaReference?: string; // Link or base64
+  history: HistoryItem[];
 }
 
 function parseCSV(text: string) {
@@ -263,8 +280,24 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
   );
 };
 
-const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded }: { brief: Brief, updateBrief: (id: string, updates: Partial<Brief>) => void, onClose: () => void, onToggleExpand: () => void, isExpanded: boolean }) => {
-  const [activeTab, setActiveTab] = useState<'content' | 'image'>('content');
+const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded, addLog }: { brief: Brief, updateBrief: (id: string, updates: Partial<Brief>) => void, onClose: () => void, onToggleExpand: () => void, isExpanded: boolean, addLog: (msg: string, type?: 'info'|'error'|'success') => void }) => {
+  const [activeTab, setActiveTab] = useState<'content' | 'image' | 'history'>('content');
+
+  const mediaSizes = {
+    'Ảnh': ['1:1', '4:3', '3:4', '16:9', '9:16'],
+    'Video': ['16:9', '9:16']
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateBrief(brief.id, { mediaReference: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
@@ -285,22 +318,74 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
         </div>
       </div>
 
-      <div className="px-6 pt-4 border-b border-border-subtle bg-bg-secondary">
-        <div className="space-y-2 mb-6">
-          {Object.entries(brief.briefData).map(([key, value]) => (
-            <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-sm">
-              <span className="font-medium text-text-secondary w-32 shrink-0">{key}:</span>
-              <span className="text-text-primary">{value || <span className="text-text-muted italic">Trống</span>}</span>
+      <div className="px-6 pt-4 border-b border-border-subtle bg-bg-secondary overflow-y-auto max-h-[40%] scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+        <div className="space-y-4 mb-6">
+          {/* Original Brief Data */}
+          <div className="grid grid-cols-1 gap-2">
+            {Object.entries(brief.briefData).map(([key, value]) => (
+              <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-sm">
+                <span className="font-medium text-text-secondary w-32 shrink-0">{key}:</span>
+                <span className="text-text-primary">{value || <span className="text-text-muted italic">Trống</span>}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* New Media Fields */}
+          <div className="pt-4 border-t border-border-subtle/50 space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Brief Media (Mô tả ảnh/video)</label>
+              <textarea 
+                value={brief.briefMedia || ''} 
+                onChange={e => updateBrief(brief.id, { briefMedia: e.target.value })}
+                className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none min-h-[80px]"
+                placeholder="Nhập mô tả, mong muốn để AI tạo ảnh/video..."
+              />
             </div>
-          ))}
-          {brief.tone && (
-            <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-sm mt-2 pt-2 border-t border-border-subtle/50">
-              <span className="font-medium text-text-secondary w-32 shrink-0">Giọng điệu:</span>
-              <span className="flex items-center gap-1.5 text-accent-primary font-medium">
-                <MessageSquare size={14} /> {brief.tone}
-              </span>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Định dạng</label>
+                <select 
+                  value={brief.mediaFormat || 'Ảnh'} 
+                  onChange={e => updateBrief(brief.id, { mediaFormat: e.target.value as any, mediaSize: mediaSizes[e.target.value as keyof typeof mediaSizes][0] })}
+                  className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none"
+                >
+                  <option value="Ảnh">Ảnh</option>
+                  <option value="Video">Video</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Kích thước</label>
+                <select 
+                  value={brief.mediaSize || '1:1'} 
+                  onChange={e => updateBrief(brief.id, { mediaSize: e.target.value })}
+                  className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none"
+                >
+                  {mediaSizes[brief.mediaFormat || 'Ảnh'].map(size => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          )}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Tham chiếu media</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={brief.mediaReference?.startsWith('data:') ? 'Đã tải ảnh lên' : (brief.mediaReference || '')} 
+                  onChange={e => updateBrief(brief.id, { mediaReference: e.target.value })}
+                  className="flex-1 p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none"
+                  placeholder="Dán link ảnh mẫu..."
+                />
+                <label className="p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-text-secondary hover:text-accent-primary hover:border-accent-primary/50 cursor-pointer transition-all">
+                  <UploadCloud size={18} />
+                  <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                </label>
+              </div>
+              <p className="text-[10px] text-text-muted italic">Tải ảnh hoặc link ảnh lên để làm mẫu thiết kế</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-6 relative">
@@ -320,9 +405,20 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
             className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'image' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
           >
             <div className="flex items-center gap-2">
-              <ImageIcon size={16} /> Ảnh minh họa
+              <ImageIcon size={16} /> Ảnh/Video
             </div>
             {activeTab === 'image' && (
+              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-t-full" />
+            )}
+          </button>
+          <button 
+            onClick={() => setActiveTab('history')}
+            className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'history' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
+          >
+            <div className="flex items-center gap-2">
+              <History size={16} /> Lịch sử
+            </div>
+            {activeTab === 'history' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-t-full" />
             )}
           </button>
@@ -364,7 +460,7 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
                 </div>
               )}
             </motion.div>
-          ) : (
+          ) : activeTab === 'image' ? (
             <motion.div 
               key="image"
               initial={{ opacity: 0, x: 10 }}
@@ -393,7 +489,7 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
                     <div className="w-16 h-16 rounded-full bg-bg-secondary flex items-center justify-center border border-border-subtle">
                       <ImageIcon size={24} className="text-text-secondary" />
                     </div>
-                    <span className="text-sm font-medium">Chưa có ảnh</span>
+                    <span className="text-sm font-medium">Chưa có ảnh/video</span>
                   </div>
                 )}
               </div>
@@ -401,7 +497,7 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
               <div className="w-full max-w-md mx-auto">
                 {brief.imageUrl ? (
                   <div className="bg-bg-tertiary p-4 rounded-xl border border-border-medium">
-                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2 flex items-center gap-1.5"><UploadCloud size={14}/> Link ảnh public</label>
+                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2 flex items-center gap-1.5"><UploadCloud size={14}/> Link media public</label>
                     <div className="flex items-center gap-2">
                       <input type="text" readOnly value={brief.imageUrl} className="flex-1 p-2.5 text-sm bg-bg-secondary border border-border-medium rounded-lg text-text-primary focus:outline-none focus:border-accent-primary transition-colors" />
                       <button onClick={() => navigator.clipboard.writeText(brief.imageUrl || '')} className="p-2.5 bg-bg-secondary border border-border-medium rounded-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary/50 transition-colors" title="Copy link">
@@ -412,10 +508,62 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded 
                 ) : (
                   <div className="text-sm text-text-muted italic bg-bg-tertiary p-4 rounded-xl border border-border-medium flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-status-warning animate-pulse"></div>
-                    Ảnh sẽ xuất hiện ở đây sau khi tạo hoặc upload.
+                    Media sẽ xuất hiện ở đây sau khi tạo hoặc upload.
                   </div>
                 )}
               </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="history"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full flex flex-col gap-4"
+            >
+              {brief.history.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-4 border border-dashed border-border-medium rounded-xl p-8">
+                  <div className="w-16 h-16 rounded-full bg-bg-tertiary flex items-center justify-center">
+                    <History size={24} className="text-text-secondary" />
+                  </div>
+                  <p className="text-sm">Chưa có lịch sử làm việc</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {brief.history.map((item) => (
+                    <div key={item.id} className="bg-bg-tertiary border border-border-medium rounded-xl p-4 space-y-3 hover:border-accent-primary/30 transition-all group">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-text-muted uppercase bg-bg-secondary px-2 py-0.5 rounded border border-border-subtle">
+                            {new Date(item.timestamp).toLocaleString('vi-VN')}
+                          </span>
+                          <span className="text-xs font-medium text-accent-primary">{item.statusDetail}</span>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            updateBrief(brief.id, {
+                              content: item.content,
+                              imageUrl: item.imageUrl,
+                              imageBase64: item.imageBase64,
+                              status: item.status as any,
+                              statusDetail: item.statusDetail
+                            });
+                            addLog(`Đã khôi phục phiên bản từ ${new Date(item.timestamp).toLocaleString('vi-VN')}`, 'success');
+                          }}
+                          className="text-xs text-accent-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Khôi phục
+                        </button>
+                      </div>
+                      <p className="text-sm text-text-primary line-clamp-3 italic">"{item.content}"</p>
+                      {item.imageUrl && (
+                        <img src={item.imageUrl} className="w-20 h-20 object-cover rounded-lg border border-border-subtle" alt="History" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -428,6 +576,7 @@ export default function App() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
+  const [showComponentDesc, setShowComponentDesc] = useState(false);
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeBriefId, setActiveBriefId] = useState<string | null>(null);
@@ -448,7 +597,21 @@ export default function App() {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(true);
 
+  const updateBriefField = (id: string, field: keyof Brief, value: any) => {
+    setBriefs(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+  };
+
+  const handleMediaUpload = (id: string, file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      updateBriefField(id, 'mediaReference', base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(false);
 
   const addLog = (msg: string, type: 'info'|'error'|'success' = 'info') => {
     const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
@@ -488,26 +651,37 @@ export default function App() {
       setUser(currentUser);
       if (currentUser) {
         setIsConfigLoading(true);
+        setIsDataLoading(true);
         try {
-          const docRef = doc(db, 'userConfigs', currentUser.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const loadedConfig = docSnap.data();
+          // Load Config
+          const configRef = doc(db, 'userConfigs', currentUser.uid);
+          const configSnap = await getDoc(configRef);
+          if (configSnap.exists()) {
+            const loadedConfig = configSnap.data();
             setConfig(prev => ({ ...prev, ...loadedConfig }));
             addLog('Đã tải cấu hình từ database.', 'success');
-            
-            // Automatically close config modal if essential keys are present
             if (loadedConfig.GEMINI_API_KEY && loadedConfig.GOOGLE_SHEET_ID) {
               setShowConfig(false);
             }
           }
+
+          // Load Briefs and Logs
+          const dataRef = doc(db, 'userData', currentUser.uid);
+          const dataSnap = await getDoc(dataRef);
+          if (dataSnap.exists()) {
+            const data = dataSnap.data();
+            if (data.briefs) setBriefs(data.briefs);
+            if (data.logs) setLogs(data.logs);
+            addLog('Đã khôi phục phiên làm việc trước đó.', 'success');
+          }
         } catch (error: any) {
-          console.error("Error loading config:", error);
+          console.error("Error loading data:", error);
           if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
-            handleFirestoreError(error, OperationType.GET, `userConfigs/${currentUser.uid}`);
+            handleFirestoreError(error, OperationType.GET, `userData/${currentUser.uid}`);
           }
         } finally {
           setIsConfigLoading(false);
+          setIsDataLoading(false);
         }
       } else {
         setShowConfig(true);
@@ -516,6 +690,24 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Auto-save briefs and logs
+  useEffect(() => {
+    if (user && briefs.length > 0) {
+      const saveData = async () => {
+        try {
+          await setDoc(doc(db, 'userData', user.uid), {
+            briefs,
+            logs: logs.slice(0, 50), // Only save last 50 logs to avoid size limits
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (error) {
+          console.error("Error auto-saving data:", error);
+        }
+      };
+      const timer = setTimeout(saveData, 3000); // Debounce save
+      return () => clearTimeout(timer);
+    }
+  }, [briefs, logs, user]);
   const fetchHeaders = async () => {
     if (!config.GOOGLE_SHEET_ID || !config.SHEET_GID) return;
     
@@ -572,7 +764,7 @@ export default function App() {
   const fetchSpreadsheets = async (token: string) => {
     setIsFetchingSpreadsheets(true);
     try {
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&fields=files(id,name)&orderBy=modifiedTime desc`, {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id,name)&orderBy=modifiedTime desc`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -797,6 +989,7 @@ export default function App() {
       const contentIdx = headers.indexOf(newConfig.COL_CONTENT);
       const imageIdx = headers.indexOf(newConfig.COL_IMAGE);
       const toneIdx = newConfig.COL_TONE ? headers.indexOf(newConfig.COL_TONE) : -1;
+      const briefMediaIdx = headers.findIndex(h => h.toLowerCase().includes('brief media'));
       
       const loadedBriefs: Brief[] = [];
       for (let i = 1; i < rows.length; i++) {
@@ -832,7 +1025,13 @@ export default function App() {
           content: existingBrief && existingBrief.status !== 'pending' ? existingBrief.content : (contentIdx !== -1 ? (row[contentIdx] || '') : ''),
           imageUrl: existingBrief && existingBrief.status !== 'pending' ? existingBrief.imageUrl : (imageIdx !== -1 ? (row[imageIdx] || '') : ''),
           imageBase64: existingBrief ? existingBrief.imageBase64 : undefined,
-          status: existingBrief ? existingBrief.status : 'pending'
+          status: existingBrief ? existingBrief.status : 'pending',
+          statusDetail: existingBrief ? existingBrief.statusDetail : 'Chưa xử lý',
+          briefMedia: existingBrief && existingBrief.briefMedia ? existingBrief.briefMedia : (briefMediaIdx !== -1 ? (row[briefMediaIdx] || '') : ''),
+          mediaFormat: existingBrief ? existingBrief.mediaFormat : 'Ảnh',
+          mediaSize: existingBrief ? existingBrief.mediaSize : '1:1',
+          mediaReference: existingBrief ? existingBrief.mediaReference : '',
+          history: existingBrief ? existingBrief.history : []
         });
       }
       
@@ -895,7 +1094,8 @@ YÊU CẦU:
 - Sử dụng kiến thức chuyên ngành đã cung cấp, KHÔNG bịa thông tin
 ${toneInstruction}
 - Độ dài: 150-500 từ (trừ khi brief yêu cầu khác)
-- Xuất content dạng text thuần, không dùng markdown`;
+- Xuất content dạng text thuần, không dùng markdown
+- BẮT BUỘC: Viết bằng tiếng Việt có dấu.`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-3.1-pro-preview',
@@ -904,7 +1104,27 @@ ${toneInstruction}
         
         const content = response.text || '';
         
-        setBriefs(prev => prev.map(b => b.id === id ? { ...b, content, status: 'content_generated' } : b));
+        setBriefs(prev => prev.map(b => {
+          if (b.id === id) {
+            const newHistoryItem: HistoryItem = {
+              id: Math.random().toString(36).substr(2, 9),
+              content,
+              imageUrl: b.imageUrl,
+              imageBase64: b.imageBase64,
+              timestamp: new Date().toISOString(),
+              status: 'content_generated',
+              statusDetail: 'Đã tạo content'
+            };
+            return { 
+              ...b, 
+              content, 
+              status: 'content_generated', 
+              statusDetail: 'Đã tạo content',
+              history: [newHistoryItem, ...b.history]
+            };
+          }
+          return b;
+        }));
         addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
       } catch (err: any) {
         addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${err.message}`, 'error');
@@ -926,13 +1146,13 @@ ${toneInstruction}
     if (!config.COL_IMAGE) missingConfigs.push("Cột Link Ảnh (Đầu ra)");
 
     if (missingConfigs.length > 0) {
-      addLog(`Thiếu cấu hình để tạo Ảnh AI: ${missingConfigs.join(", ")}. Vui lòng kiểm tra lại mục Cấu hình hệ thống.`, 'error');
+      addLog(`Thiếu cấu hình để tạo Media AI: ${missingConfigs.join(", ")}. Vui lòng kiểm tra lại mục Cấu hình hệ thống.`, 'error');
       setShowConfig(true);
       return;
     }
     
     setIsProcessing(true);
-    setProgress({ current: 0, total: selectedIds.size, task: 'Tạo Ảnh AI' });
+    setProgress({ current: 0, total: selectedIds.size, task: 'Tạo Media AI' });
     
     const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
     let count = 0;
@@ -940,60 +1160,149 @@ ${toneInstruction}
     for (const id of selectedIds) {
       const brief = briefs.find(b => b.id === id);
       if (!brief) continue;
-      if (!brief.content) {
-        addLog(`Dòng ${brief.rowIndex} chưa có content, bỏ qua tạo ảnh.`, 'error');
-        count++;
-        setProgress(p => ({ ...p, current: count }));
-        continue;
-      }
       
       try {
-        addLog(`Đang tạo prompt ảnh cho dòng ${brief.rowIndex}...`, 'info');
         setActiveBriefId(brief.id);
-        
-        const promptResponse = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: `Dựa trên nội dung content sau, hãy tạo 1 prompt bằng tiếng Anh mô tả ảnh minh họa phù hợp:
 
-CONTENT: ${brief.content}
+        if (brief.mediaFormat === 'Video') {
+          addLog(`Đang tạo Video cho dòng ${brief.rowIndex}...`, 'info');
+          
+          const videoPrompt = `Tạo video minh họa dựa trên các thông tin sau:
+TÓM TẮT BRIEF: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
+MÔ TẢ MEDIA: ${brief.briefMedia || 'Tự động sáng tạo dựa trên brief'}
+CONTENT CHI TIẾT: ${brief.content || ''}`;
 
-Yêu cầu prompt ảnh:
-- Ảnh chân thực, phong cách chụp ảnh thật (photorealistic)
-- Không có text/chữ trong ảnh
-- Phù hợp để đăng trên mạng xã hội
-- Ánh sáng tự nhiên, bố cục đẹp
-- Chỉ trả về nội dung prompt, không thêm text nào khác.`
-        });
-        
-        const imagePrompt = promptResponse.text || 'A beautiful photorealistic image';
-        addLog(`Đang sinh ảnh cho dòng ${brief.rowIndex}...`, 'info');
-        
-        const imageResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: {
-            parts: [
-              {
-                text: imagePrompt,
-              },
-            ],
-          },
-          config: {
-            imageConfig: {
-              aspectRatio: "1:1"
+          let operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: videoPrompt,
+            config: {
+              numberOfVideos: 1,
+              resolution: '720p',
+              aspectRatio: brief.mediaSize === '16:9' ? '16:9' : '9:16'
+            }
+          });
+
+          while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            operation = await ai.operations.getVideosOperation({ operation: operation });
+          }
+
+          const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+          if (downloadLink) {
+            const videoUrl = `${downloadLink}?x-goog-api-key=${config.GEMINI_API_KEY}`;
+            
+            setBriefs(prev => prev.map(b => {
+              if (b.id === id) {
+                const newHistoryItem: HistoryItem = {
+                  id: Math.random().toString(36).substr(2, 9),
+                  content: b.content,
+                  imageUrl: videoUrl,
+                  timestamp: new Date().toISOString(),
+                  status: 'image_generated',
+                  statusDetail: 'Đã tạo Video AI'
+                };
+                return { 
+                  ...b, 
+                  imageUrl: videoUrl, 
+                  status: 'image_generated',
+                  statusDetail: 'Đã tạo Video AI',
+                  history: [newHistoryItem, ...b.history]
+                };
+              }
+              return b;
+            }));
+            addLog(`Đã tạo Video cho dòng ${brief.rowIndex} thành công.`, 'success');
+          }
+        } else {
+          addLog(`Đang tạo prompt ảnh cho dòng ${brief.rowIndex}...`, 'info');
+          
+          const promptResponse = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
+Nhiệm vụ của bạn là tạo ra một PROMPT chi tiết để AI (như Midjourney, Stable Diffusion hoặc Veo) có thể tạo ra hình ảnh/video chất lượng cao nhất.
+
+THÔNG TIN ĐẦU VÀO:
+- TÓM TẮT BRIEF: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
+- MÔ TẢ MEDIA: ${brief.mediaDescription || 'Tự động sáng tạo dựa trên brief'}
+- CONTENT CHI TIẾT: ${brief.content || 'Nội dung bài viết đi kèm'}
+- ĐỊNH DẠNG: ${brief.mediaFormat === 'video' ? 'Video' : 'Ảnh'}
+- TỈ LỆ: ${brief.aspectRatio || '1:1'}
+
+YÊU CẦU PROMPT:
+1. Mô tả chi tiết về bối cảnh, ánh sáng (cinematic lighting, soft box, sunlight...), góc chụp (eye-level, top-down, wide shot...).
+2. Mô tả về đối tượng chính, màu sắc chủ đạo, phong cách (photorealistic, 3D render, minimalist...).
+3. Nếu là Video: Mô tả chuyển động (slow motion, camera pan, zoom in...).
+4. KHÔNG bao gồm các từ nhạy cảm hoặc bị cấm.
+5. Xuất kết quả là PROMPT TIẾNG ANH để AI hiểu tốt nhất.
+6. BẮT BUỘC: Phần giải thích ý tưởng phải viết bằng tiếng Việt có dấu.`
+          });
+          
+          const imagePrompt = promptResponse.text || 'A beautiful photorealistic image';
+          addLog(`Đang sinh ảnh cho dòng ${brief.rowIndex}...`, 'info');
+          
+          const parts: any[] = [];
+          
+          // Add reference image if exists
+          if (brief.mediaReference) {
+            if (brief.mediaReference.startsWith('data:')) {
+              const base64Data = brief.mediaReference.split(',')[1];
+              const mimeType = brief.mediaReference.split(';')[0].split(':')[1];
+              parts.push({
+                inlineData: {
+                  data: base64Data,
+                  mimeType: mimeType
+                }
+              });
+              parts.push({ text: "Dựa vào phong cách và bố cục của ảnh mẫu này," });
+            } else {
+              parts.push({ text: `Dựa vào phong cách của ảnh mẫu tại link này: ${brief.mediaReference}.` });
             }
           }
-        });
-        
-        const base64Data = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-        
-        if (base64Data) {
-          setBriefs(prev => prev.map(b => b.id === id ? { ...b, imageBase64: base64Data, status: 'image_generated' } : b));
-          addLog(`Đã tạo ảnh cho dòng ${brief.rowIndex}.`, 'success');
-        } else {
-          throw new Error('Không nhận được dữ liệu ảnh từ API.');
+
+          parts.push({ text: imagePrompt });
+
+          const imageResponse = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-image-preview',
+            contents: { parts },
+            config: {
+              imageConfig: {
+                aspectRatio: (brief.mediaSize || "1:1") as any,
+                imageSize: "1K"
+              }
+            }
+          });
+          
+          const base64Data = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+          
+          if (base64Data) {
+            setBriefs(prev => prev.map(b => {
+              if (b.id === id) {
+                const newHistoryItem: HistoryItem = {
+                  id: Math.random().toString(36).substr(2, 9),
+                  content: b.content,
+                  imageUrl: b.imageUrl,
+                  imageBase64: base64Data,
+                  timestamp: new Date().toISOString(),
+                  status: 'image_generated',
+                  statusDetail: 'Đã tạo ảnh AI'
+                };
+                return { 
+                  ...b, 
+                  imageBase64: base64Data, 
+                  status: 'image_generated',
+                  statusDetail: 'Đã tạo ảnh AI',
+                  history: [newHistoryItem, ...b.history]
+                };
+              }
+              return b;
+            }));
+            addLog(`Đã tạo ảnh cho dòng ${brief.rowIndex} thành công.`, 'success');
+          } else {
+            throw new Error('Không nhận được dữ liệu ảnh từ API.');
+          }
         }
       } catch (err: any) {
-        addLog(`Lỗi tạo ảnh dòng ${brief.rowIndex}: ${err.message}`, 'error');
+        addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
         setBriefs(prev => prev.map(b => b.id === id ? { ...b, status: 'error' } : b));
       }
       
@@ -1085,6 +1394,9 @@ Yêu cầu prompt ảnh:
         
         const contentColIdx = sheetHeaders.indexOf(config.COL_CONTENT);
         const imageColIdx = sheetHeaders.indexOf(config.COL_IMAGE);
+        const briefMediaColIdx = sheetHeaders.indexOf(config.COL_BRIEF_MEDIA);
+        const mediaFormatColIdx = sheetHeaders.indexOf(config.COL_MEDIA_FORMAT);
+        const mediaRefColIdx = sheetHeaders.indexOf(config.COL_MEDIA_REF);
         
         const getColLetter = (idx: number) => {
           let letter = '';
@@ -1110,6 +1422,24 @@ Yêu cầu prompt ảnh:
             data.push({
               range: `'${tabTitle}'!${getColLetter(imageColIdx)}${brief.rowIndex}`,
               values: [[brief.imageUrl]]
+            });
+          }
+          if (brief.briefMedia && briefMediaColIdx !== -1) {
+            data.push({
+              range: `'${tabTitle}'!${getColLetter(briefMediaColIdx)}${brief.rowIndex}`,
+              values: [[brief.briefMedia]]
+            });
+          }
+          if (brief.mediaFormat && mediaFormatColIdx !== -1) {
+            data.push({
+              range: `'${tabTitle}'!${getColLetter(mediaFormatColIdx)}${brief.rowIndex}`,
+              values: [[brief.mediaFormat]]
+            });
+          }
+          if (brief.mediaReference && mediaRefColIdx !== -1 && !brief.mediaReference.startsWith('data:')) {
+            data.push({
+              range: `'${tabTitle}'!${getColLetter(mediaRefColIdx)}${brief.rowIndex}`,
+              values: [[brief.mediaReference]]
             });
           }
         }
@@ -1144,7 +1474,7 @@ Yêu cầu prompt ảnh:
         }
         
         addLog(`Đã lưu ${data.length} ô dữ liệu về Sheet thành công qua API.`, 'success');
-        setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved' } : b));
+        setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved', statusDetail: 'Hoàn Thành' } : b));
         
       } else {
         // Fallback to GAS Web App
@@ -1163,7 +1493,10 @@ Yêu cầu prompt ảnh:
           data.push({
             rowIndex: brief.rowIndex,
             content: brief.content || '',
-            imageUrl: brief.imageUrl || ''
+            imageUrl: brief.imageUrl || '',
+            briefMedia: brief.briefMedia || '',
+            mediaFormat: brief.mediaFormat || 'Ảnh',
+            mediaReference: brief.mediaReference || ''
           });
         }
         
@@ -1178,6 +1511,9 @@ Yêu cầu prompt ảnh:
           tabId: config.SHEET_GID,
           contentCol: config.COL_CONTENT,
           imageCol: config.COL_IMAGE,
+          briefMediaCol: config.COL_BRIEF_MEDIA,
+          mediaFormatCol: config.COL_MEDIA_FORMAT,
+          mediaRefCol: config.COL_MEDIA_REF,
           data: data
         };
         
@@ -1192,7 +1528,7 @@ Yêu cầu prompt ảnh:
         const result = await res.json();
         if (result.status === 'success') {
           addLog(`Đã lưu ${data.length} dòng dữ liệu về Sheet thành công.`, 'success');
-          setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved' } : b));
+          setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved', statusDetail: 'Hoàn Thành' } : b));
         } else {
           throw new Error(result.message || 'GAS trả về lỗi');
         }
@@ -1239,15 +1575,19 @@ Yêu cầu prompt ảnh:
           <div className="space-y-1">
             <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
               <Settings size={18} className="shrink-0" />
-              {!isSidebarCollapsed && <span>Cấu hình hệ thống</span>}
+              {!isSidebarCollapsed && <span>Cấu Hình Hệ Thống</span>}
             </button>
             <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
               <Terminal size={18} className="shrink-0" />
-              {!isSidebarCollapsed && <span>System Logs</span>}
+              {!isSidebarCollapsed && <span>Hệ Thống Logs</span>}
             </button>
             <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
               <BookOpen size={18} className="shrink-0" />
               {!isSidebarCollapsed && <span>Tài Liệu Hướng Dẫn</span>}
+            </button>
+            <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
+              <Info size={18} className="shrink-0" />
+              {!isSidebarCollapsed && <span>Mô Tả Thành Phần</span>}
             </button>
           </div>
 
@@ -1255,7 +1595,7 @@ Yêu cầu prompt ảnh:
           {!isSidebarCollapsed && availableHeaders.length > 0 && (
             <div className="space-y-4 pt-4 border-t border-border-subtle">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Cấu hình Cột</h3>
+                <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Cấu Hình Cột</h3>
                 <button 
                   onClick={fetchHeaders} 
                   disabled={isFetchingHeaders}
@@ -1267,20 +1607,20 @@ Yêu cầu prompt ảnh:
               </div>
               <div className="space-y-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Cột Brief (Đầu vào)</label>
-                  <MultiSelectDropdown options={availableHeaders} selected={config.COL_BRIEFS || []} onChange={(val: string[]) => setConfig({...config, COL_BRIEFS: val})} label="Chọn cột..." icon={FileText} />
+                  <label className="text-xs font-medium text-text-secondary">Cột Brief (Đầu Vào)</label>
+                  <MultiSelectDropdown options={availableHeaders} selected={config.COL_BRIEFS || []} onChange={(val: string[]) => setConfig({...config, COL_BRIEFS: val})} label="Chọn Cột..." icon={FileText} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Giọng điệu Content</label>
-                  <SingleSelectDropdown options={availableHeaders} selected={config.COL_TONE || ''} onChange={(val: string) => setConfig({...config, COL_TONE: val})} label="Chọn cột..." icon={MessageSquare} />
+                  <label className="text-xs font-medium text-text-secondary">Giọng Điệu Content</label>
+                  <SingleSelectDropdown options={availableHeaders} selected={config.COL_TONE || ''} onChange={(val: string) => setConfig({...config, COL_TONE: val})} label="Chọn Cột..." icon={MessageSquare} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Cột Content (Đầu ra)</label>
-                  <SingleSelectDropdown options={availableHeaders} selected={config.COL_CONTENT} onChange={(val: string) => setConfig({...config, COL_CONTENT: val})} label="Chọn cột..." icon={Edit3} />
+                  <label className="text-xs font-medium text-text-secondary">Cột Content (Đầu Ra)</label>
+                  <SingleSelectDropdown options={availableHeaders} selected={config.COL_CONTENT} onChange={(val: string) => setConfig({...config, COL_CONTENT: val})} label="Chọn Cột..." icon={Edit3} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Cột Link Ảnh (Đầu ra)</label>
-                  <SingleSelectDropdown options={availableHeaders} selected={config.COL_IMAGE} onChange={(val: string) => setConfig({...config, COL_IMAGE: val})} label="Chọn cột..." icon={ImageIcon} />
+                  <label className="text-xs font-medium text-text-secondary">Cột Link Ảnh (Đầu Ra)</label>
+                  <SingleSelectDropdown options={availableHeaders} selected={config.COL_IMAGE} onChange={(val: string) => setConfig({...config, COL_IMAGE: val})} label="Chọn Cột..." icon={ImageIcon} />
                 </div>
               </div>
             </div>
@@ -1312,7 +1652,7 @@ Yêu cầu prompt ảnh:
                   onClick={handleLogin} 
                   className="w-full flex items-center justify-center gap-2 py-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/20 rounded-lg text-xs font-medium hover:bg-accent-primary/20 transition-colors"
                 >
-                  <Layers size={14} /> Kết nối Google Sheet
+                  <Layers size={14} /> Kết Nối Google Sheet
                 </button>
               )}
               
@@ -1477,6 +1817,9 @@ Yêu cầu prompt ảnh:
                     </th>
                     <th className="p-3 w-16 font-semibold bg-bg-primary">Dòng</th>
                     <th className="p-3 font-semibold bg-bg-primary">Tóm tắt Brief</th>
+                    <th className="p-3 font-semibold bg-bg-primary">Mô tả Media</th>
+                    <th className="p-3 w-32 font-semibold bg-bg-primary">Định dạng</th>
+                    <th className="p-3 w-48 font-semibold bg-bg-primary">Tham chiếu</th>
                     <th className="p-3 w-40 font-semibold bg-bg-primary">Trạng thái</th>
                   </tr>
                 </thead>
@@ -1522,15 +1865,100 @@ Yêu cầu prompt ảnh:
                             )}
                           </div>
                         </td>
+                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
+                          <textarea 
+                            className="w-full bg-transparent border-none focus:ring-0 text-xs text-text-primary italic resize-none p-0 min-h-[40px] scrollbar-none"
+                            value={brief.briefMedia || ''}
+                            onChange={(e) => updateBriefField(brief.id, 'briefMedia', e.target.value)}
+                            placeholder="Nhập mô tả media..."
+                            onClick={e => e.stopPropagation()}
+                          />
+                        </td>
+                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
+                          <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                            <select 
+                              className="bg-bg-tertiary border border-border-subtle rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-primary focus:ring-1 focus:ring-accent-primary outline-none cursor-pointer"
+                              value={brief.mediaFormat || 'Ảnh'}
+                              onChange={(e) => updateBriefField(brief.id, 'mediaFormat', e.target.value as any)}
+                            >
+                              <option value="Ảnh">Ảnh</option>
+                              <option value="Video">Video</option>
+                            </select>
+                            <select 
+                              className="bg-bg-tertiary border border-border-subtle rounded px-1.5 py-1 text-[10px] text-text-muted focus:ring-1 focus:ring-accent-primary outline-none cursor-pointer"
+                              value={brief.mediaSize || '1:1'}
+                              onChange={(e) => updateBriefField(brief.id, 'mediaSize', e.target.value)}
+                            >
+                              {brief.mediaFormat === 'Video' ? (
+                                <>
+                                  <option value="9:16">9:16 (Dọc)</option>
+                                  <option value="16:9">16:9 (Ngang)</option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value="1:1">1:1 (Vuông)</option>
+                                  <option value="4:3">4:3</option>
+                                  <option value="3:4">3:4</option>
+                                  <option value="16:9">16:9</option>
+                                  <option value="9:16">9:16</option>
+                                </>
+                              )}
+                            </select>
+                          </div>
+                        </td>
+                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
+                          <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                            <div className="relative group/ref">
+                              <input 
+                                type="text"
+                                className="w-full bg-bg-tertiary border border-border-subtle rounded px-2 py-1.5 text-[10px] text-text-primary focus:ring-1 focus:ring-accent-primary outline-none pr-6"
+                                value={brief.mediaReference?.startsWith('data:') ? '' : (brief.mediaReference || '')}
+                                onChange={(e) => updateBriefField(brief.id, 'mediaReference', e.target.value)}
+                                placeholder="Dán link ảnh..."
+                              />
+                              {brief.mediaReference?.startsWith('data:') && (
+                                <div className="absolute inset-0 bg-accent-primary/10 flex items-center px-2 rounded border border-accent-primary/20 pointer-events-none">
+                                  <span className="text-[10px] text-accent-primary font-medium truncate">Ảnh đã tải lên</span>
+                                </div>
+                              )}
+                              {brief.mediaReference && (
+                                <button 
+                                  onClick={() => updateBriefField(brief.id, 'mediaReference', '')}
+                                  className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted hover:text-status-danger p-1"
+                                >
+                                  <X size={10} />
+                                </button>
+                              )}
+                            </div>
+                            <label className="flex items-center justify-center gap-1.5 py-1.5 bg-bg-tertiary border border-dashed border-border-medium rounded text-[10px] text-text-muted hover:border-accent-primary hover:text-accent-primary transition-colors cursor-pointer">
+                              <Upload size={10} />
+                              Tải ảnh lên
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleMediaUpload(brief.id, file);
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </td>
                         <td className="p-3 rounded-r-xl border-y border-r border-border-subtle group-hover:border-border-medium transition-colors">
-                          <StatusBadge status={brief.status} />
+                          <div className="flex flex-col gap-1">
+                            <StatusBadge status={brief.status} />
+                            {brief.statusDetail && (
+                              <span className="text-[10px] text-text-muted font-medium line-clamp-1">{brief.statusDetail}</span>
+                            )}
+                          </div>
                         </td>
                       </motion.tr>
                     ))}
                   </AnimatePresence>
                   {briefs.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="p-16 text-center">
+                      <td colSpan={7} className="p-16 text-center">
                         <div className="flex flex-col items-center justify-center text-text-muted gap-4">
                           <div className="w-16 h-16 bg-bg-tertiary rounded-full flex items-center justify-center border border-border-subtle">
                             <Download size={24} className="text-text-secondary" />
@@ -1564,6 +1992,7 @@ Yêu cầu prompt ảnh:
                   onClose={() => setActiveBriefId(null)}
                   onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
                   isExpanded={isPreviewExpanded}
+                  addLog={addLog}
                 />
               </motion.div>
             )}
@@ -1639,17 +2068,37 @@ Yêu cầu prompt ảnh:
               <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-secondary shrink-0">
                 <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                   <BookOpen className="text-accent-primary" size={20} />
-                  Tài liệu hướng dẫn sử dụng
+                  Tài Liệu Hướng Dẫn Sử Dụng
                 </h2>
                 <button onClick={() => setShowGuide(false)} className="text-text-muted hover:text-status-danger hover:bg-status-danger/10 p-2 rounded-full transition-colors"><XCircle size={20} /></button>
               </div>
               
               <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent space-y-8 text-left">
+                {/* Section 0: Template & Login */}
+                <section className="p-4 bg-accent-primary/5 rounded-2xl border border-accent-primary/20">
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center text-accent-primary">0</div>
+                    Chuẩn bị dữ liệu & Đăng nhập
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
+                      <li>
+                        Đây là template file Google Sheet để ứng dụng web app: 
+                        <a href="https://docs.google.com/spreadsheets/d/1QbQILYBdNABqwsbo5TqfmWDGHSvna_dIFfG1ku1slzU/edit?gid=615081352#gid=615081352" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline ml-1 inline-flex items-center gap-1">
+                          Template Google Sheet <ExternalLink size={12}/>
+                        </a>
+                      </li>
+                      <li>Cần đăng nhập tài khoản Google và <strong>Clone (Tạo bản sao)</strong> file sheet này ra trước.</li>
+                      <li>Đăng nhập trên Web App bằng chính tài khoản Google đã tạo file sheet ở trên.</li>
+                    </ul>
+                  </div>
+                </section>
+
                 {/* Section 1: Gemini API */}
                 <section>
                   <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center text-accent-primary">1</div>
-                    Cấu hình Gemini API Key
+                    Cấu Hình Gemini API Key
                   </h3>
                   <div className="pl-10 space-y-3">
                     <p className="text-sm text-text-secondary leading-relaxed">
@@ -1659,7 +2108,7 @@ Yêu cầu prompt ảnh:
                       <li>Truy cập <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline inline-flex items-center gap-1">Google AI Studio <ExternalLink size={12}/></a>.</li>
                       <li>Nhấn nút <strong>"Create API key"</strong>.</li>
                       <li>Chọn dự án và sao chép mã API Key (có dạng <code>AIza...</code>).</li>
-                      <li>Dán vào ô <strong>Gemini API Key</strong> trong phần Cấu hình hệ thống.</li>
+                      <li>Dán vào ô <strong>Gemini API Key</strong> trong phần Cấu Hình Hệ Thống.</li>
                     </ul>
                   </div>
                 </section>
@@ -1679,8 +2128,8 @@ Yêu cầu prompt ảnh:
                       <ol className="list-decimal pl-5 text-sm text-text-secondary space-y-2">
                         <li>Nhấn <strong>"Đăng nhập với Google"</strong> trong phần Cấu hình.</li>
                         <li>Cấp quyền truy cập vào Google Drive và Google Sheets khi được hỏi.</li>
-                        <li>Chọn <strong>Bảng tính (Spreadsheet)</strong> từ danh sách hiện ra.</li>
-                        <li>Chọn <strong>Tab (Sheet nhỏ)</strong> chứa dữ liệu của bạn.</li>
+                        <li>Chọn <strong>Bảng Tính (Spreadsheet)</strong> từ danh sách hiện ra.</li>
+                        <li>Chọn <strong>Tab (Sheet Nhỏ)</strong> chứa dữ liệu của bạn.</li>
                         <li>Thiết lập các cột tương ứng (Cột Brief, Cột Content, Cột Ảnh).</li>
                       </ol>
                     </div>
@@ -1691,7 +2140,7 @@ Yêu cầu prompt ảnh:
                 <section>
                   <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-lg bg-accent-secondary/10 flex items-center justify-center text-accent-secondary">3</div>
-                    Cấu hình ImgBB API Key
+                    Cấu Hình ImgBB API Key
                   </h3>
                   <div className="pl-10 space-y-3">
                     <p className="text-sm text-text-secondary leading-relaxed">
@@ -1701,7 +2150,7 @@ Yêu cầu prompt ảnh:
                       <li>Truy cập <a href="https://imgbb.com/signup" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline inline-flex items-center gap-1">ImgBB <ExternalLink size={12}/></a> để đăng ký tài khoản.</li>
                       <li>Sau khi đăng nhập, vào trang <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-accent-primary hover:underline inline-flex items-center gap-1">API ImgBB <ExternalLink size={12}/></a>.</li>
                       <li>Nhấn <strong>"Add API Key"</strong> và sao chép mã.</li>
-                      <li>Dán vào ô <strong>ImgBB API Key</strong> trong phần Cấu hình hệ thống.</li>
+                      <li>Dán vào ô <strong>ImgBB API Key</strong> trong phần Cấu Hình Hệ Thống.</li>
                     </ul>
                   </div>
                 </section>
@@ -1718,7 +2167,7 @@ Yêu cầu prompt ảnh:
                     </p>
                     <div className="p-3 bg-status-warning/5 border border-status-warning/20 rounded-lg">
                       <p className="text-xs text-status-warning italic">
-                        * Hướng dẫn chi tiết và mã nguồn đã được cung cấp sẵn trong phần cuối của mục Cấu hình hệ thống.
+                        * Hướng dẫn chi tiết và mã nguồn đã được cung cấp sẵn trong phần cuối của mục Cấu Hình Hệ Thống.
                       </p>
                     </div>
                   </div>
@@ -1735,6 +2184,119 @@ Yêu cầu prompt ảnh:
 
       {/* Config Modal */}
       <AnimatePresence>
+        {showComponentDesc && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowComponentDesc(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-bg-secondary w-full max-w-2xl max-h-[80vh] rounded-2xl shadow-2xl border border-border-subtle overflow-hidden flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-border-subtle flex items-center justify-between bg-bg-primary shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary">
+                    <Info size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-text-primary">Mô Tả Thành Phần</h2>
+                    <p className="text-xs text-text-muted">Chi tiết các cột và tính năng trên Dashboard</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowComponentDesc(false)} className="p-2 hover:bg-bg-tertiary rounded-full transition-colors text-text-muted">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+                <div className="grid gap-6">
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Tóm Tắt Brief</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        Dữ liệu đầu vào được lấy từ các cột bạn đã cấu hình trong Google Sheet. Đây là nguồn thông tin chính để AI hiểu về sản phẩm, dịch vụ và mục tiêu của chiến dịch marketing.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                      <Edit3 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Mô Tả Media</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        Nơi bạn nhập chi tiết yêu cầu về hình ảnh hoặc video. Bạn có thể mô tả bối cảnh, ánh sáng, đối tượng, hoặc cảm xúc muốn truyền tải. Nếu để trống, AI sẽ tự động sáng tạo dựa trên nội dung Brief.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Định Dạng & Kích Thước</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        Lựa chọn kết quả đầu ra là <strong>Ảnh</strong> hoặc <strong>Video</strong>. Tùy theo lựa chọn, bạn có thể chọn tỉ lệ khung hình tương ứng (ví dụ: 1:1 cho Instagram, 9:16 cho TikTok/Reels).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                      <ExternalLink size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Tham Chiếu (Reference)</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        Cung cấp mẫu để AI học tập. Bạn có thể dán link ảnh từ web hoặc tải ảnh trực tiếp từ máy tính. AI sẽ dựa vào đây để mô phỏng phong cách, bố cục và màu sắc.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                      <MessageSquare size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Content Chi Tiết</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        Nội dung văn bản chi tiết (bài viết social, kịch bản...) được AI tạo ra dựa trên Brief và Giọng điệu đã chọn.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Trạng Thái</h3>
+                      <p className="text-sm text-text-secondary leading-relaxed">
+                        Hiển thị tiến độ xử lý của từng dòng: Đang chờ, Đã tạo Content, Đã tạo Media, hoặc có Lỗi xảy ra.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-border-subtle bg-bg-primary flex justify-end shrink-0">
+                <button onClick={() => setShowComponentDesc(false)} className="btn-primary px-8">Đóng</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showConfig && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -1752,7 +2314,7 @@ Yêu cầu prompt ảnh:
               <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-secondary shrink-0">
                 <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                   <Settings className="text-accent-primary" size={20} />
-                  Cấu hình hệ thống
+                  Cấu Hình Hệ Thống
                 </h2>
                 <button onClick={() => setShowConfig(false)} className="text-text-muted hover:text-status-danger hover:bg-status-danger/10 p-2 rounded-full transition-colors"><XCircle size={20} /></button>
               </div>
@@ -1782,7 +2344,7 @@ Yêu cầu prompt ảnh:
                 <div className="p-5 bg-bg-tertiary border border-border-medium rounded-xl shadow-sm">
                   <h3 className="font-bold text-text-primary mb-3 flex items-center gap-2">
                     <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png" alt="Sheets" className="w-5 h-5 drop-shadow-sm" />
-                    Kết nối Google Sheet
+                    Kết Nối Google Sheet
                   </h3>
                   
                   {!accessToken ? (
@@ -1823,7 +2385,7 @@ Yêu cầu prompt ảnh:
                         <div>
                           <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
                             <Search size={14} className="text-accent-primary" />
-                            1. Chọn Bảng tính (Spreadsheet)
+                            1. Chọn Bảng Tính (Spreadsheet)
                           </label>
                           
                           {isFetchingSpreadsheets ? (
@@ -1882,7 +2444,7 @@ Yêu cầu prompt ảnh:
                           >
                             <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
                               <Layers size={14} className="text-accent-primary" />
-                              2. Chọn Tab (Sheet nhỏ)
+                              2. Chọn Tab (Sheet Nhỏ)
                             </label>
                             
                             {isFetchingTabs ? (
@@ -1897,6 +2459,7 @@ Yêu cầu prompt ảnh:
                                   onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
                                   className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
                                 >
+                                  <option value="">-- Chọn Một Tab --</option>
                                   {availableTabs.map(tab => (
                                     <option key={tab.id} value={tab.id}>{tab.title}</option>
                                   ))}
@@ -1908,7 +2471,7 @@ Yêu cầu prompt ảnh:
                                 onClick={fetchTabs}
                                 className="w-full p-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/30 rounded-lg hover:bg-accent-primary/20 transition-colors text-sm font-medium"
                               >
-                                Nhấn để tải danh sách Tab
+                                Nhấn Để Tải Danh Sách Tab
                               </button>
                             )}
                           </motion.div>
@@ -2000,6 +2563,9 @@ Yêu cầu prompt ảnh:
   var headers = tab.getRange(1, 1, 1, tab.getLastColumn()).getValues()[0];
   var contentColIdx = headers.indexOf(payload.contentCol) + 1;
   var imageColIdx = headers.indexOf(payload.imageCol) + 1;
+  var briefMediaColIdx = headers.indexOf(payload.briefMediaCol) + 1;
+  var mediaFormatColIdx = headers.indexOf(payload.mediaFormatCol) + 1;
+  var mediaRefColIdx = headers.indexOf(payload.mediaRefCol) + 1;
 
   data.forEach(function(item) {
     if (contentColIdx > 0 && item.content) {
@@ -2007,6 +2573,15 @@ Yêu cầu prompt ảnh:
     }
     if (imageColIdx > 0 && item.imageUrl) {
       tab.getRange(item.rowIndex, imageColIdx).setValue(item.imageUrl);
+    }
+    if (briefMediaColIdx > 0 && item.briefMedia) {
+      tab.getRange(item.rowIndex, briefMediaColIdx).setValue(item.briefMedia);
+    }
+    if (mediaFormatColIdx > 0 && item.mediaFormat) {
+      tab.getRange(item.rowIndex, mediaFormatColIdx).setValue(item.mediaFormat);
+    }
+    if (mediaRefColIdx > 0 && item.mediaReference && item.mediaReference.indexOf('data:') !== 0) {
+      tab.getRange(item.rowIndex, mediaRefColIdx).setValue(item.mediaReference);
     }
   });
 

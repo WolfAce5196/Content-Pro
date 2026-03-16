@@ -13,10 +13,32 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    function isAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "phamsonbgmkt@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
     function isValidUserConfig(data) {
-      return data.keys().hasAll(['GEMINI_API_KEY', 'GOOGLE_SHEET_ID']) &&
-             data.GEMINI_API_KEY is string && data.GEMINI_API_KEY.size() < 200 &&
-             data.GOOGLE_SHEET_ID is string && data.GOOGLE_SHEET_ID.size() < 200;
+      return data.keys().hasAny(['GEMINI_API_KEY', 'GOOGLE_SHEET_ID', 'SHEET_GID', 'GAS_WEB_APP_URL', 'IMGBB_API_KEY', 'COL_BRIEFS', 'COL_TONE', 'COL_CONTENT', 'COL_IMAGE', 'KNOWLEDGE_BASE', 'updatedAt']) &&
+             (!('GEMINI_API_KEY' in data) || (data.GEMINI_API_KEY is string && data.GEMINI_API_KEY.size() < 200)) &&
+             (!('GOOGLE_SHEET_ID' in data) || (data.GOOGLE_SHEET_ID is string && data.GOOGLE_SHEET_ID.size() < 200)) &&
+             (!('SHEET_GID' in data) || (data.SHEET_GID is string && data.SHEET_GID.size() < 50)) &&
+             (!('GAS_WEB_APP_URL' in data) || (data.GAS_WEB_APP_URL is string && data.GAS_WEB_APP_URL.size() < 500)) &&
+             (!('IMGBB_API_KEY' in data) || (data.IMGBB_API_KEY is string && data.IMGBB_API_KEY.size() < 200)) &&
+             (!('COL_BRIEFS' in data) || (data.COL_BRIEFS is list && data.COL_BRIEFS.size() < 20)) &&
+             (!('COL_TONE' in data) || (data.COL_TONE is string && data.COL_TONE.size() < 100)) &&
+             (!('COL_CONTENT' in data) || (data.COL_CONTENT is string && data.COL_CONTENT.size() < 100)) &&
+             (!('COL_IMAGE' in data) || (data.COL_IMAGE is string && data.COL_IMAGE.size() < 100)) &&
+             (!('KNOWLEDGE_BASE' in data) || (data.KNOWLEDGE_BASE is string && data.KNOWLEDGE_BASE.size() < 5000)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string));
+    }
+
+    function isValidUserData(data) {
+      return data.keys().hasAny(['briefs', 'logs', 'updatedAt']) &&
+             (!('briefs' in data) || (data.briefs is list && data.briefs.size() < 1000)) &&
+             (!('logs' in data) || (data.logs is list && data.logs.size() < 100)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string));
     }
 
     // ===============================================================
@@ -24,9 +46,15 @@ service cloud.firestore {
     // ===============================================================
     
     match /userConfigs/{userId} {
-      allow read: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
       allow create, update: if isOwner(userId) && isValidUserConfig(request.resource.data);
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /userData/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) && isValidUserData(request.resource.data);
+      allow delete: if isOwner(userId) || isAdmin();
     }
     
     match /test/connection {
