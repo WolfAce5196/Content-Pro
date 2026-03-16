@@ -57,6 +57,16 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+const GEMINI_KEYS = [
+  "AIzaSyC-vQcgpR2B4ZN6zp6eAo4M-NUsPj066Aw",
+  "AIzaSyAlg754zty0-hpgmBg_9qNVT8koZlfgPQ0"
+];
+
+const IMGBB_KEYS = [
+  "ae8c634463c8ae42ac5d47f46120fbb3",
+  "8ab8ca2ab8dc92c8cbfc48c5c70bf031"
+];
+
 const DEFAULT_CONFIG = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
   GOOGLE_SHEET_ID: "",
@@ -822,11 +832,12 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, task: '' });
+  const [syncError, setSyncError] = useState<string | null>(null);
   const stopProcessingRef = useRef(false);
 
   // Layout states
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isWorkspaceCollapsed, setIsWorkspaceCollapsed] = useState(false);
+  const [isWorkspaceCollapsed, setIsWorkspaceCollapsed] = useState(true);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(true);
 
@@ -1106,25 +1117,6 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
-      // Try to load from localStorage first for immediate UI response
-      try {
-        const localBriefs = localStorage.getItem('ais_briefs_backup');
-        const localLogs = localStorage.getItem('ais_logs_backup');
-        if (localBriefs) {
-          const parsed = JSON.parse(localBriefs);
-          if (Array.isArray(parsed) && briefs.length === 0) {
-            setBriefs(parsed);
-            if (localLogs) {
-              const parsedLogs = JSON.parse(localLogs);
-              if (Array.isArray(parsedLogs)) setLogs(parsedLogs);
-            }
-            addLog('Đã khôi phục dữ liệu từ bộ nhớ tạm.', 'info');
-          }
-        }
-      } catch (e) {
-        console.error("Error loading local backup:", e);
-      }
-
       if (currentUser) {
         setIsConfigLoading(true);
         setIsDataLoading(true);
@@ -1132,13 +1124,46 @@ export default function App() {
           // Load Config
           const configRef = doc(db, 'userConfigs', currentUser.uid);
           const configSnap = await getDoc(configRef);
+          let currentConfig = { ...DEFAULT_CONFIG };
+
           if (configSnap.exists()) {
             const loadedConfig = configSnap.data();
-            setConfig(prev => ({ ...prev, ...loadedConfig }));
+            currentConfig = { ...currentConfig, ...loadedConfig };
+            
+            // If keys are missing, apply the auto-assignment logic
+            if (!currentConfig.GEMINI_API_KEY || !currentConfig.IMGBB_API_KEY) {
+              if (currentUser.email === "phamsonbgmkt@gmail.com") {
+                if (!currentConfig.GEMINI_API_KEY) currentConfig.GEMINI_API_KEY = "AIzaSyAfQigk0oEr0rjqAgV5uoF7FV5jMZZruos";
+                if (!currentConfig.IMGBB_API_KEY) currentConfig.IMGBB_API_KEY = "9adc1585e5ab16b74e717e00be2f579f";
+              } else {
+                if (!currentConfig.GEMINI_API_KEY) currentConfig.GEMINI_API_KEY = GEMINI_KEYS[Math.floor(Math.random() * GEMINI_KEYS.length)];
+                if (!currentConfig.IMGBB_API_KEY) currentConfig.IMGBB_API_KEY = IMGBB_KEYS[Math.floor(Math.random() * IMGBB_KEYS.length)];
+              }
+              await setDoc(configRef, currentConfig, { merge: true });
+            }
+            
+            setConfig(currentConfig);
             addLog('Đã tải cấu hình từ database.', 'success');
-            if (loadedConfig.GEMINI_API_KEY && loadedConfig.GOOGLE_SHEET_ID) {
+            if (currentConfig.GEMINI_API_KEY && currentConfig.GOOGLE_SHEET_ID) {
               setShowConfig(false);
             }
+          } else {
+            // New user, set default keys
+            let geminiKey = "";
+            let imgbbKey = "";
+            
+            if (currentUser.email === "phamsonbgmkt@gmail.com") {
+              geminiKey = "AIzaSyAfQigk0oEr0rjqAgV5uoF7FV5jMZZruos";
+              imgbbKey = "9adc1585e5ab16b74e717e00be2f579f";
+            } else {
+              geminiKey = GEMINI_KEYS[Math.floor(Math.random() * GEMINI_KEYS.length)];
+              imgbbKey = IMGBB_KEYS[Math.floor(Math.random() * IMGBB_KEYS.length)];
+            }
+            
+            const newConfig = { ...DEFAULT_CONFIG, GEMINI_API_KEY: geminiKey, IMGBB_API_KEY: imgbbKey };
+            setConfig(newConfig);
+            await setDoc(configRef, newConfig);
+            addLog('Đã khởi tạo cấu hình mặc định.', 'info');
           }
 
           // Load Briefs and Logs
@@ -1340,12 +1365,32 @@ export default function App() {
       setAccessToken(null);
       setUser(null);
       setAvailableTabs([]);
+      setBriefs([]);
+      setSelectedIds(new Set());
       setConfig(DEFAULT_CONFIG);
       setShowConfig(true);
+      setSyncError(null);
       addLog('Đã đăng xuất.', 'info');
     } catch (error: any) {
       addLog(`Lỗi đăng xuất: ${error.message}`, 'error');
     }
+  };
+
+  const handleSyncAction = () => {
+    setSyncError(null);
+    
+    if (!user || !accessToken) {
+      handleLogin();
+      return;
+    }
+
+    if (!config.GOOGLE_SHEET_ID || !config.SHEET_GID) {
+      setSyncError('Vui lòng chọn Trang tính và Tab để tiếp tục.');
+      setShowConfig(true);
+      return;
+    }
+
+    loadBriefs();
   };
 
   useEffect(() => {
@@ -1437,6 +1482,7 @@ export default function App() {
 
   const loadBriefs = async () => {
     try {
+      setSyncError(null);
       setIsProcessing(true);
       addLog('Đang tải dữ liệu từ Google Sheet...', 'info');
       
@@ -1529,7 +1575,7 @@ export default function App() {
         
         if (!hasData) continue;
         
-        const id = `row_${i + 1}`;
+        const id = `row_${i + 1}_${config.GOOGLE_SHEET_ID.slice(-5)}_${config.SHEET_GID}`;
         const existingBrief = briefs.find(b => b.id === id);
         
         loadedBriefs.push({
@@ -1560,6 +1606,14 @@ export default function App() {
       setIsProcessing(false);
     }
   };
+
+  // Auto-load briefs when config and token are available (e.g. after login)
+  useEffect(() => {
+    if (accessToken && config.GOOGLE_SHEET_ID && config.SHEET_GID && briefs.length === 0 && !isProcessing) {
+      loadBriefs();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, config.GOOGLE_SHEET_ID, config.SHEET_GID]);
 
   const generateContent = async () => {
     if (selectedIds.size === 0) return;
@@ -1650,10 +1704,24 @@ ${toneInstruction}
             }
           });
 
-          const response = await ai.models.generateContent({
-            model: 'gemini-3.1-pro-preview',
-            contents: [{ parts }],
-          });
+          let response;
+          let retries = 0;
+          const maxRetries = 2;
+          
+          while (retries <= maxRetries) {
+            try {
+              response = await ai.models.generateContent({
+                model: 'gemini-3.1-pro-preview',
+                contents: [{ parts }],
+              });
+              break; // Success
+            } catch (apiErr: any) {
+              retries++;
+              if (retries > maxRetries) throw apiErr;
+              addLog(`Lỗi API dòng ${brief.rowIndex}, đang thử lại lần ${retries}...`, 'info');
+              await new Promise(resolve => setTimeout(resolve, 2000 * retries));
+            }
+          }
           
           const content = response.text || '';
           
@@ -1679,6 +1747,11 @@ ${toneInstruction}
             return b;
           }));
           addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
+
+          // Thêm khoảng nghỉ ngắn giữa các dòng để tránh rate limit
+          if (count < selectedBriefs.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         } catch (err: any) {
           addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${err.message}`, 'error');
           setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
@@ -1786,9 +1859,15 @@ CONTENT CHI TIẾT: ${brief.content || ''}`;
           } else {
             addLog(`Đang tạo prompt ảnh cho dòng ${brief.rowIndex}...`, 'info');
             
-            const promptResponse = await ai.models.generateContent({
-              model: 'gemini-3-flash-preview',
-              contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
+            let promptResponse;
+            let promptRetries = 0;
+            const maxPromptRetries = 2;
+            
+            while (promptRetries <= maxPromptRetries) {
+              try {
+                promptResponse = await ai.models.generateContent({
+                  model: 'gemini-3-flash-preview',
+                  contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
 Nhiệm vụ của bạn là tạo ra một PROMPT chi tiết để AI có thể tạo ra hình ảnh/video chất lượng cao nhất.
 
 THÔNG TIN ĐẦU VÀO:
@@ -1805,7 +1884,15 @@ YÊU CẦU PROMPT:
 4. KHÔNG bao gồm các từ nhạy cảm hoặc bị cấm.
 5. Xuất kết quả là PROMPT TIẾNG ANH.
 6. BẮT BUỘC: Phần giải thích ý tưởng phải viết bằng tiếng Việt có dấu.`
-            });
+                });
+                break;
+              } catch (apiErr: any) {
+                promptRetries++;
+                if (promptRetries > maxPromptRetries) throw apiErr;
+                addLog(`Lỗi tạo prompt dòng ${brief.rowIndex}, thử lại lần ${promptRetries}...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 2000 * promptRetries));
+              }
+            }
             
             const imagePrompt = promptResponse.text || 'A beautiful photorealistic image';
             addLog(`Đang sinh ảnh cho dòng ${brief.rowIndex}...`, 'info');
@@ -1830,26 +1917,40 @@ YÊU CẦU PROMPT:
 
             parts.push({ text: imagePrompt });
 
-            const imageResponse = await ai.models.generateContent({
-              model: 'gemini-3.1-flash-image-preview',
-              contents: { parts },
-              config: {
-                imageConfig: {
-                  aspectRatio: (brief.mediaSize || "1:1") as any,
-                  imageSize: "1K"
-                },
-                tools: brief.mediaReference && !brief.mediaReference.startsWith('data:') ? [
-                  {
-                    googleSearch: {
-                      searchTypes: {
-                        webSearch: {},
-                        imageSearch: {},
-                      }
+            let imageResponse;
+            let imageRetries = 0;
+            const maxImageRetries = 2;
+            
+            while (imageRetries <= maxImageRetries) {
+              try {
+                imageResponse = await ai.models.generateContent({
+                  model: 'gemini-3.1-flash-image-preview',
+                  contents: { parts },
+                  config: {
+                    imageConfig: {
+                      aspectRatio: (brief.mediaSize || "1:1") as any,
+                      imageSize: "1K"
                     },
-                  },
-                ] : undefined,
+                    tools: brief.mediaReference && !brief.mediaReference.startsWith('data:') ? [
+                      {
+                        googleSearch: {
+                          searchTypes: {
+                            webSearch: {},
+                            imageSearch: {},
+                          }
+                        },
+                      },
+                    ] : undefined,
+                  }
+                });
+                break;
+              } catch (apiErr: any) {
+                imageRetries++;
+                if (imageRetries > maxImageRetries) throw apiErr;
+                addLog(`Lỗi sinh ảnh dòng ${brief.rowIndex}, thử lại lần ${imageRetries}...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 3000 * imageRetries));
               }
-            });
+            }
             
             const candidate = imageResponse.candidates?.[0];
             const base64Data = candidate?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
@@ -1939,20 +2040,34 @@ YÊU CẦU PROMPT:
         addLog(`Đang upload ảnh dòng ${brief.rowIndex}...`, 'info');
         setActiveBriefId(brief.id);
         
-        const formData = new FormData();
-        formData.append('image', brief.imageBase64);
+        let data;
+        let retries = 0;
+        const maxRetries = 2;
         
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=${config.IMGBB_API_KEY}`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        const data = await res.json();
+        while (retries <= maxRetries) {
+          try {
+            const formData = new FormData();
+            formData.append('image', brief.imageBase64);
+            
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${config.IMGBB_API_KEY}`, {
+              method: 'POST',
+              body: formData
+            });
+            
+            data = await res.json();
+            if (data.success) break;
+            throw new Error(data.error?.message || 'Upload thất bại');
+          } catch (apiErr: any) {
+            retries++;
+            if (retries > maxRetries) throw apiErr;
+            addLog(`Lỗi upload dòng ${brief.rowIndex}, thử lại lần ${retries}...`, 'info');
+            await new Promise(resolve => setTimeout(resolve, 2000 * retries));
+          }
+        }
+
         if (data.success) {
           setBriefs(prev => prev.map(b => b.id === id ? { ...b, imageUrl: data.data.url, status: 'uploaded' } : b));
           addLog(`Upload thành công dòng ${brief.rowIndex}: ${data.data.url}`, 'success');
-        } else {
-          throw new Error(data.error?.message || 'Upload thất bại');
         }
       } catch (err: any) {
         addLog(`Lỗi upload dòng ${brief.rowIndex}: ${err.message}`, 'error');
@@ -1960,6 +2075,11 @@ YÊU CẦU PROMPT:
       
       count++;
       setProgress(p => ({ ...p, current: count }));
+
+      // Thêm khoảng nghỉ ngắn giữa các dòng để tránh rate limit
+      if (count < selectedIds.size) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
     
     setIsProcessing(false);
@@ -2306,6 +2426,7 @@ YÊU CẦU PROMPT:
                       const newId = e.target.value;
                       const newConfig = {...config, GOOGLE_SHEET_ID: newId, SHEET_GID: ""};
                       setConfig(newConfig);
+                      setSyncError(null);
                       if (user) {
                         try {
                           await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
@@ -2337,6 +2458,7 @@ YÊU CẦU PROMPT:
                     onChange={async e => {
                       const newConfig = {...config, SHEET_GID: e.target.value};
                       setConfig(newConfig);
+                      setSyncError(null);
                       if (user) {
                         try {
                           await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
@@ -2360,8 +2482,18 @@ YÊU CẦU PROMPT:
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button onClick={loadBriefs} disabled={isProcessing} className="btn-secondary"><Download size={16}/> Đồng Bộ Dữ Liệu</button>
+          <div className="flex items-center gap-3 relative">
+            {syncError && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute top-full right-0 mt-2 bg-status-danger/10 border border-status-danger/30 text-status-danger text-[10px] px-3 py-1.5 rounded-lg whitespace-nowrap z-50 flex items-center gap-2 shadow-lg backdrop-blur-sm"
+              >
+                <AlertCircle size={12} />
+                {syncError}
+              </motion.div>
+            )}
+            <button onClick={handleSyncAction} disabled={isProcessing} className="btn-secondary"><Download size={16}/> Đồng Bộ Dữ Liệu</button>
             <button onClick={saveToSheet} disabled={isProcessing || selectedIds.size === 0} className="btn-primary"><Save size={16}/> Lưu về Sheet</button>
           </div>
         </header>
@@ -2662,12 +2794,26 @@ YÊU CẦU PROMPT:
                     <tr>
                       <td colSpan={7} className="p-16 text-center">
                         <div className="flex flex-col items-center justify-center text-text-muted gap-4">
-                          <div className="w-16 h-16 bg-bg-tertiary rounded-full flex items-center justify-center border border-border-subtle">
-                            <Download size={24} className="text-text-secondary" />
-                          </div>
-                          <div>
+                          <button 
+                            onClick={handleSyncAction}
+                            disabled={isProcessing}
+                            className="w-16 h-16 bg-bg-tertiary rounded-full flex items-center justify-center border border-border-subtle hover:border-accent-primary hover:text-accent-primary transition-all hover:scale-110 active:scale-95 group/sync"
+                          >
+                            <Download size={24} className="text-text-secondary group-hover/sync:text-accent-primary transition-colors" />
+                          </button>
+                          <div className="flex flex-col items-center gap-1">
                             <p className="text-sm font-bold text-text-primary mb-1">Chưa có dữ liệu</p>
                             <p className="text-xs">Hãy nhấn "Tải Dữ Liệu" để bắt đầu lấy dữ liệu từ Google Sheet.</p>
+                            {syncError && (
+                              <motion.p 
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-xs text-status-danger font-medium mt-2 flex items-center gap-1.5"
+                              >
+                                <AlertCircle size={12} />
+                                {syncError}
+                              </motion.p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -3130,6 +3276,7 @@ YÊU CẦU PROMPT:
                         <li>Nhấn nút <strong className="text-text-primary">"Create API key"</strong>.</li>
                         <li>Chọn <strong className="text-text-primary">"Create API key in new project"</strong>.</li>
                         <li>Sao chép mã (chuỗi ký tự dài) và dán vào ô trên.</li>
+                        <li>Lấy key tại đây nếu chưa setup được: <a href="https://anotepad.com/notes/9br67ayg" target="_blank" rel="noreferrer" className="text-accent-primary underline">https://anotepad.com/notes/9br67ayg</a></li>
                       </ol>
                     </div>
                   </details>
@@ -3204,7 +3351,7 @@ YÊU CẦU PROMPT:
                               <div className="relative">
                                 <select 
                                   value={config.GOOGLE_SHEET_ID} 
-                                  onChange={e => setConfig({...config, GOOGLE_SHEET_ID: e.target.value})}
+                                  onChange={e => { setConfig({...config, GOOGLE_SHEET_ID: e.target.value}); setSyncError(null); }}
                                   className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
                                 >
                                   <option value="">-- Chọn một Bảng tính từ Drive --</option>
@@ -3232,6 +3379,7 @@ YÊU CẦU PROMPT:
                                 const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
                                 if (match) val = match[1];
                                 setConfig({...config, GOOGLE_SHEET_ID: val});
+                                setSyncError(null);
                               }} 
                               className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary text-xs" 
                               placeholder="Nhập ID hoặc dán link Google Sheet"
@@ -3258,7 +3406,7 @@ YÊU CẦU PROMPT:
                                 <div className="relative">
                                   <select 
                                     value={config.SHEET_GID} 
-                                    onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
+                                    onChange={e => { setConfig({...config, SHEET_GID: e.target.value}); setSyncError(null); }}
                                     className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
                                   >
                                     <option value="">-- Chọn Một Tab --</option>
@@ -3320,6 +3468,7 @@ YÊU CẦU PROMPT:
                       <li>Đăng ký hoặc đăng nhập tài khoản.</li>
                       <li>Nhấn <strong className="text-text-primary">"Create API Key"</strong>.</li>
                       <li>Sao chép mã và dán vào ô trên.</li>
+                      <li>Lấy key tại đây nếu chưa setup được: <a href="https://anotepad.com/notes/9br67ayg" target="_blank" rel="noreferrer" className="text-accent-primary underline">https://anotepad.com/notes/9br67ayg</a></li>
                     </ol>
                   </div>
                 </details>

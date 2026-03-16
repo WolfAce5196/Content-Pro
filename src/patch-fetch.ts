@@ -4,35 +4,37 @@
 const patchFetch = (target: any, name: string) => {
   try {
     if (!target) return;
-    const descriptor = Object.getOwnPropertyDescriptor(target, 'fetch');
-    if (descriptor) {
-      console.log(`[FetchPatch] Found fetch on ${name}. Configurable: ${descriptor.configurable}, Writable: ${descriptor.writable}, HasGetter: ${!!descriptor.get}`);
+    
+    // Check if fetch is already writable
+    const descriptor = Object.getOwnPropertyDescriptor(target, 'fetch') || 
+                       Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target) || {}, 'fetch');
+    
+    if (descriptor && (!descriptor.writable || descriptor.get)) {
+      console.log(`[FetchPatch] Patching fetch on ${name}. Configurable: ${descriptor.configurable}`);
       
-      if (descriptor.configurable && (descriptor.get || !descriptor.writable)) {
-        const originalFetch = target.fetch;
-        try {
-          // Try deleting first, then re-assigning
-          delete target.fetch;
-          target.fetch = originalFetch;
-          console.log(`[FetchPatch] Successfully patched ${name}.fetch via delete/assign`);
-        } catch (e) {
-          // Fallback to defineProperty
-          Object.defineProperty(target, 'fetch', {
-            value: originalFetch,
-            writable: true,
-            configurable: true,
-            enumerable: true
-          });
-          console.log(`[FetchPatch] Successfully patched ${name}.fetch via defineProperty`);
+      const originalFetch = target.fetch;
+      
+      try {
+        Object.defineProperty(target, 'fetch', {
+          value: originalFetch,
+          writable: true,
+          configurable: true,
+          enumerable: true
+        });
+        console.log(`[FetchPatch] Successfully patched ${name}.fetch`);
+      } catch (e) {
+        console.warn(`[FetchPatch] Failed to defineProperty on ${name}.fetch:`, e);
+        
+        // If defineProperty fails, try deleting and assigning if configurable
+        if (descriptor.configurable) {
+          try {
+            delete target.fetch;
+            target.fetch = originalFetch;
+            console.log(`[FetchPatch] Successfully patched ${name}.fetch via delete/assign`);
+          } catch (e2) {
+            console.error(`[FetchPatch] Final attempt failed for ${name}.fetch:`, e2);
+          }
         }
-      } else if (!descriptor.configurable) {
-        console.warn(`[FetchPatch] Cannot patch ${name}.fetch because it is not configurable`);
-      }
-    } else {
-      // If it's not on the object itself, it might be on the prototype
-      const proto = Object.getPrototypeOf(target);
-      if (proto && proto.fetch) {
-        patchFetch(proto, `${name}.prototype`);
       }
     }
   } catch (e) {
@@ -40,10 +42,14 @@ const patchFetch = (target: any, name: string) => {
   }
 };
 
-patchFetch(window, 'window');
-if (typeof Window !== 'undefined' && Window.prototype) patchFetch(Window.prototype, 'Window.prototype');
+// Apply patch to common globals
+if (typeof window !== 'undefined') patchFetch(window, 'window');
 if (typeof self !== 'undefined') patchFetch(self, 'self');
 if (typeof globalThis !== 'undefined') patchFetch(globalThis, 'globalThis');
-if (typeof (window as any).global !== 'undefined') patchFetch((window as any).global, 'global');
+
+// Also try to patch the prototype if possible
+if (typeof Window !== 'undefined' && Window.prototype) {
+  patchFetch(Window.prototype, 'Window.prototype');
+}
 
 export {};
