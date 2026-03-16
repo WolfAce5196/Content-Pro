@@ -282,6 +282,155 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
   );
 };
 
+interface WorkspaceItemProps {
+  key?: any;
+  brief: Brief;
+  onContentClick: () => void;
+  onImageClick: () => void;
+}
+
+const WorkspaceItem = ({ brief, onContentClick, onImageClick }: WorkspaceItemProps) => {
+  return (
+    <div className="flex gap-4 p-4 border-b border-border-subtle hover:bg-bg-tertiary/30 transition-colors group">
+      {/* Content Box */}
+      <div 
+        onClick={onContentClick}
+        className="flex-1 bg-bg-tertiary rounded-xl border border-border-medium p-4 cursor-pointer hover:border-accent-primary/50 transition-all relative overflow-hidden min-h-[120px]"
+      >
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Maximize2 size={14} className="text-text-muted" />
+        </div>
+        <div className="text-[10px] font-bold text-accent-primary uppercase tracking-wider mb-2 flex justify-between">
+          <span>Dòng {brief.rowIndex}</span>
+          {brief.statusDetail && <span className="text-text-muted">{brief.statusDetail}</span>}
+        </div>
+        <p className="text-sm text-text-primary line-clamp-4 whitespace-pre-wrap">
+          {brief.content || <span className="text-text-muted italic">Đang chờ tạo nội dung...</span>}
+        </p>
+      </div>
+
+      {/* Image Box */}
+      <div 
+        onClick={onImageClick}
+        className="w-32 h-32 shrink-0 bg-bg-tertiary rounded-xl border border-border-medium overflow-hidden cursor-pointer hover:border-accent-primary/50 transition-all group/img relative"
+      >
+        {brief.imageBase64 ? (
+          <img src={`data:image/jpeg;base64,${brief.imageBase64}`} className="w-full h-full object-cover" alt="AI" />
+        ) : brief.imageUrl ? (
+          <img src={brief.imageUrl} className="w-full h-full object-cover" alt="Media" />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-text-muted gap-2">
+            <ImageIcon size={20} />
+            <span className="text-[10px]">Chưa có ảnh</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+          <Maximize2 size={16} className="text-white" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const WorkspacePanel = ({ 
+  selectedBriefs, 
+  onClose, 
+  onContentClick, 
+  onImageClick 
+}: { 
+  selectedBriefs: Brief[], 
+  onClose: () => void,
+  onContentClick: (brief: Brief) => void,
+  onImageClick: (brief: Brief) => void
+}) => {
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
+      <div className="px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20">
+            {selectedBriefs.length}
+          </div>
+          <h3 className="font-bold text-lg text-text-primary tracking-tight">Không gian làm việc</h3>
+        </div>
+        <button onClick={onClose} className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors">
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+        {selectedBriefs.map(brief => (
+          <WorkspaceItem 
+            key={brief.id} 
+            brief={brief} 
+            onContentClick={() => onContentClick(brief)}
+            onImageClick={() => onImageClick(brief)}
+          />
+        ))}
+        {selectedBriefs.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-text-muted p-8 text-center">
+            <FileText size={48} className="mb-4 opacity-20" />
+            <p>Chọn các brief trong bảng để bắt đầu xử lý</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ContentDetailModal = ({ brief, onClose }: { brief: Brief, onClose: () => void }) => {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-bg-secondary w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-border-subtle"
+      >
+        <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-tertiary">
+          <h3 className="font-bold text-lg text-text-primary">Chi tiết nội dung & Ảnh (Dòng {brief.rowIndex})</h3>
+          <button onClick={onClose} className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+          {/* Content Area */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-accent-primary uppercase tracking-widest">Nội dung bài viết</h4>
+              <button 
+                onClick={() => navigator.clipboard.writeText(brief.content)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 text-accent-primary rounded-lg text-xs font-bold hover:bg-accent-primary/20 transition-all"
+              >
+                <Download size={14} /> Copy Content
+              </button>
+            </div>
+            <div className="bg-bg-tertiary p-6 rounded-xl border border-border-medium text-text-primary whitespace-pre-wrap leading-relaxed font-serif text-lg">
+              {brief.content || <span className="text-text-muted italic">Chưa có nội dung...</span>}
+            </div>
+          </div>
+
+          {/* Image Area */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-accent-primary uppercase tracking-widest">Hình ảnh minh họa</h4>
+            <div className="w-full aspect-video bg-bg-tertiary rounded-xl border border-border-medium overflow-hidden">
+              {brief.imageBase64 ? (
+                <img src={`data:image/jpeg;base64,${brief.imageBase64}`} className="w-full h-full object-contain" alt="AI" />
+              ) : brief.imageUrl ? (
+                <img src={brief.imageUrl} className="w-full h-full object-contain" alt="Media" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
+                  <ImageIcon size={48} className="opacity-20 mb-2" />
+                  <p>Chưa có ảnh minh họa</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded, addLog, setPreviewMedia }: { brief: Brief, updateBrief: (id: string, updates: Partial<Brief>) => void, onClose: () => void, onToggleExpand: () => void, isExpanded: boolean, addLog: (msg: string, type?: 'info'|'error'|'success') => void, setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'image' | 'history'>('content');
 
@@ -597,6 +746,8 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [availableTabs, setAvailableTabs] = useState<{id: number, title: string}[]>([]);
   const [isFetchingTabs, setIsFetchingTabs] = useState(false);
+  const [contentDetailBrief, setContentDetailBrief] = useState<Brief | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
   const [availableSpreadsheets, setAvailableSpreadsheets] = useState<{id: string, name: string}[]>([]);
   const [isFetchingSpreadsheets, setIsFetchingSpreadsheets] = useState(false);
   const [availableHeaders, setAvailableHeaders] = useState<string[]>([]);
@@ -684,7 +835,6 @@ export default function App() {
   // New states for enhancements
   const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete'>('all');
   const [historyBriefId, setHistoryBriefId] = useState<string | null>(null);
-  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
   const addLog = (msg: string, type: 'info'|'error'|'success' = 'info') => {
     const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
@@ -2315,7 +2465,7 @@ YÊU CẦU PROMPT:
 
           {/* Preview Panel Wrapper */}
           <AnimatePresence>
-            {activeBriefId && (
+            {(activeBriefId || selectedIds.size > 0) && (
               <motion.div 
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: isPreviewExpanded ? '100%' : '40%', opacity: 1 }}
@@ -2323,15 +2473,27 @@ YÊU CẦU PROMPT:
                 transition={{ type: "spring", bounce: 0, duration: 0.3 }}
                 className="flex flex-col bg-bg-secondary relative z-10 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
               >
-                <PreviewPanel 
-                  brief={briefs.find(b => b.id === activeBriefId)!} 
-                  updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}
-                  onClose={() => setActiveBriefId(null)}
-                  onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
-                  isExpanded={isPreviewExpanded}
-                  addLog={addLog}
-                  setPreviewMedia={setPreviewMedia}
-                />
+                {selectedIds.size > 0 ? (
+                  <WorkspacePanel 
+                    selectedBriefs={briefs.filter(b => selectedIds.has(b.id))}
+                    onClose={() => setSelectedIds(new Set())}
+                    onContentClick={(brief) => setContentDetailBrief(brief)}
+                    onImageClick={(brief) => setPreviewMedia({ 
+                      url: brief.imageBase64 ? `data:image/jpeg;base64,${brief.imageBase64}` : (brief.imageUrl || ''), 
+                      type: brief.mediaFormat === 'Video' ? 'video' : 'image' 
+                    })}
+                  />
+                ) : activeBriefId ? (
+                  <PreviewPanel 
+                    brief={briefs.find(b => b.id === activeBriefId)!} 
+                    updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}
+                    onClose={() => setActiveBriefId(null)}
+                    onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
+                    isExpanded={isPreviewExpanded}
+                    addLog={addLog}
+                    setPreviewMedia={setPreviewMedia}
+                  />
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
@@ -3129,6 +3291,14 @@ function doGet(e) {
         )}
         <HistoryModal />
         <MediaPreviewModal />
+        <AnimatePresence>
+          {contentDetailBrief && (
+            <ContentDetailModal 
+              brief={contentDetailBrief} 
+              onClose={() => setContentDetailBrief(null)} 
+            />
+          )}
+        </AnimatePresence>
       </AnimatePresence>
     </div>
   );
