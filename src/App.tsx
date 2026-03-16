@@ -1126,6 +1126,19 @@ export default function App() {
       setUser(currentUser);
       
       if (currentUser) {
+        // Restore Google Access Token if available and not expired
+        const savedTokenData = localStorage.getItem(`google_access_token_${currentUser.uid}`);
+        if (savedTokenData) {
+          try {
+            const { token, expiry } = JSON.parse(savedTokenData);
+            if (expiry > Date.now()) {
+              setAccessToken(token);
+            }
+          } catch (e) {
+            console.error("Error restoring token:", e);
+          }
+        }
+
         setIsConfigLoading(true);
         setIsDataLoading(true);
         try {
@@ -1341,9 +1354,12 @@ export default function App() {
       // @ts-ignore
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential && credential.accessToken) {
-        setAccessToken(credential.accessToken);
+        const token = credential.accessToken;
+        const expiry = Date.now() + 3500 * 1000; // ~1 hour
+        setAccessToken(token);
+        localStorage.setItem(`google_access_token_${result.user.uid}`, JSON.stringify({ token, expiry }));
         addLog('Đăng nhập Google thành công và đã cấp quyền truy cập Sheet.', 'success');
-        fetchSpreadsheets(credential.accessToken);
+        fetchSpreadsheets(token);
       } else {
         addLog('Đăng nhập thành công nhưng không nhận được Access Token. Vui lòng thử lại.', 'error');
       }
@@ -1369,6 +1385,9 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      if (user) {
+        localStorage.removeItem(`google_access_token_${user.uid}`);
+      }
       await signOut(auth);
       setAccessToken(null);
       setUser(null);
@@ -1498,7 +1517,29 @@ export default function App() {
       
       if (accessToken) {
         // Use Sheets API if we have access token
-        const tab = availableTabs.find(t => t.id.toString() === config.SHEET_GID);
+        let currentTabs = availableTabs;
+        
+        // If availableTabs is empty, fetch them first to get the title for SHEET_GID
+        if (currentTabs.length === 0) {
+          try {
+            const tabsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${config.GOOGLE_SHEET_ID}`;
+            const tabsRes = await fetch(tabsUrl, {
+              headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (tabsRes.ok) {
+              const tabsData = await tabsRes.json();
+              currentTabs = tabsData.sheets.map((s: any) => ({
+                id: s.properties.sheetId,
+                title: s.properties.title
+              }));
+              setAvailableTabs(currentTabs);
+            }
+          } catch (e) {
+            console.error("Error fetching tabs in loadBriefs:", e);
+          }
+        }
+
+        const tab = currentTabs.find(t => t.id.toString() === config.SHEET_GID);
         const tabTitle = tab ? tab.title : config.SHEET_GID; // Fallback to GID if title not found
         
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.GOOGLE_SHEET_ID}/values/'${tabTitle}'`;
@@ -1633,9 +1674,9 @@ export default function App() {
     }
   };
 
-  // Auto-load briefs when config and token are available (e.g. after login)
+  // Auto-load briefs when config is available
   useEffect(() => {
-    if (accessToken && config.GOOGLE_SHEET_ID && config.SHEET_GID && briefs.length === 0 && !isProcessing) {
+    if (config.GOOGLE_SHEET_ID && config.SHEET_GID && briefs.length === 0 && !isProcessing) {
       loadBriefs();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
