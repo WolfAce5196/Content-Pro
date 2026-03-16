@@ -1015,16 +1015,22 @@ export default function App() {
       setUser(currentUser);
       
       // Try to load from localStorage first for immediate UI response
-      const localBriefs = localStorage.getItem('ais_briefs_backup');
-      const localLogs = localStorage.getItem('ais_logs_backup');
-      if (localBriefs && briefs.length === 0) {
-        try {
-          setBriefs(JSON.parse(localBriefs));
-          if (localLogs) setLogs(JSON.parse(localLogs));
-          addLog('Đã khôi phục dữ liệu từ bộ nhớ tạm.', 'info');
-        } catch (e) {
-          console.error("Error parsing local backup:", e);
+      try {
+        const localBriefs = localStorage.getItem('ais_briefs_backup');
+        const localLogs = localStorage.getItem('ais_logs_backup');
+        if (localBriefs) {
+          const parsed = JSON.parse(localBriefs);
+          if (Array.isArray(parsed) && briefs.length === 0) {
+            setBriefs(parsed);
+            if (localLogs) {
+              const parsedLogs = JSON.parse(localLogs);
+              if (Array.isArray(parsedLogs)) setLogs(parsedLogs);
+            }
+            addLog('Đã khôi phục dữ liệu từ bộ nhớ tạm.', 'info');
+          }
         }
+      } catch (e) {
+        console.error("Error loading local backup:", e);
       }
 
       if (currentUser) {
@@ -1094,9 +1100,20 @@ export default function App() {
   useEffect(() => {
     if (briefs.length > 0) {
       // Always save to localStorage immediately for maximum persistence
-      localStorage.setItem('ais_briefs_backup', JSON.stringify(briefs));
-      localStorage.setItem('ais_logs_backup', JSON.stringify(logs.slice(0, 50)));
-      localStorage.setItem('ais_last_updated', new Date().toISOString());
+      try {
+        localStorage.setItem('ais_briefs_backup', JSON.stringify(briefs));
+        localStorage.setItem('ais_logs_backup', JSON.stringify(logs.slice(0, 50)));
+        localStorage.setItem('ais_last_updated', new Date().toISOString());
+      } catch (e) {
+        console.warn("LocalStorage quota exceeded, trying to save without large images...");
+        try {
+          // If quota exceeded, save a version without large base64 images
+          const optimizedBriefs = briefs.map(b => ({ ...b, imageBase64: undefined }));
+          localStorage.setItem('ais_briefs_backup', JSON.stringify(optimizedBriefs));
+        } catch (e2) {
+          console.error("Failed to save even optimized briefs to localStorage:", e2);
+        }
+      }
 
       if (user) {
         const saveData = async () => {
@@ -1589,63 +1606,64 @@ ${toneInstruction}
     
     const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
 
-    await Promise.all(selectedBriefs.map(async (brief) => {
-      try {
-        if (brief.mediaFormat === 'Video') {
-          addLog(`Đang tạo Video cho dòng ${brief.rowIndex}...`, 'info');
-          
-          const videoPrompt = `Tạo video minh họa dựa trên các thông tin sau:
+    try {
+      for (const brief of selectedBriefs) {
+        try {
+          if (brief.mediaFormat === 'Video') {
+            addLog(`Đang tạo Video cho dòng ${brief.rowIndex}...`, 'info');
+            
+            const videoPrompt = `Tạo video minh họa dựa trên các thông tin sau:
 TÓM TẮT BRIEF: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
 MÔ TẢ MEDIA: ${brief.briefMedia || 'Tự động sáng tạo dựa trên brief'}
 CONTENT CHI TIẾT: ${brief.content || ''}`;
 
-          let operation = await ai.models.generateVideos({
-            model: 'veo-3.1-fast-generate-preview',
-            prompt: videoPrompt,
-            config: {
-              numberOfVideos: 1,
-              resolution: '720p',
-              aspectRatio: brief.mediaSize === '16:9' ? '16:9' : '9:16'
-            }
-          });
-
-          while (!operation.done) {
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            operation = await ai.operations.getVideosOperation({ operation: operation });
-          }
-
-          const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-          if (downloadLink) {
-            const videoUrl = `${downloadLink}?x-goog-api-key=${config.GEMINI_API_KEY}`;
-            
-            setBriefs(prev => prev.map(b => {
-              if (b.id === brief.id) {
-                const newHistoryItem: HistoryItem = {
-                  id: Math.random().toString(36).substr(2, 9),
-                  content: b.content,
-                  imageUrl: videoUrl,
-                  timestamp: new Date().toISOString(),
-                  status: 'image_generated',
-                  statusDetail: 'Đã tạo Video AI'
-                };
-                return { 
-                  ...b, 
-                  imageUrl: videoUrl, 
-                  status: 'image_generated',
-                  statusDetail: 'Đã tạo Video AI',
-                  history: [newHistoryItem, ...b.history]
-                };
+            let operation = await ai.models.generateVideos({
+              model: 'veo-3.1-fast-generate-preview',
+              prompt: videoPrompt,
+              config: {
+                numberOfVideos: 1,
+                resolution: '720p',
+                aspectRatio: brief.mediaSize === '16:9' ? '16:9' : '9:16'
               }
-              return b;
-            }));
-            addLog(`Đã tạo Video cho dòng ${brief.rowIndex} thành công.`, 'success');
-          }
-        } else {
-          addLog(`Đang tạo prompt ảnh cho dòng ${brief.rowIndex}...`, 'info');
-          
-          const promptResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
+            });
+
+            while (!operation.done) {
+              await new Promise(resolve => setTimeout(resolve, 10000));
+              operation = await ai.operations.getVideosOperation({ operation: operation });
+            }
+
+            const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+            if (downloadLink) {
+              const videoUrl = `${downloadLink}?x-goog-api-key=${config.GEMINI_API_KEY}`;
+              
+              setBriefs(prev => prev.map(b => {
+                if (b.id === brief.id) {
+                  const newHistoryItem: HistoryItem = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    content: b.content,
+                    imageUrl: videoUrl,
+                    timestamp: new Date().toISOString(),
+                    status: 'image_generated',
+                    statusDetail: 'Đã tạo Video AI'
+                  };
+                  return { 
+                    ...b, 
+                    imageUrl: videoUrl, 
+                    status: 'image_generated',
+                    statusDetail: 'Đã tạo Video AI',
+                    history: [newHistoryItem, ...b.history]
+                  };
+                }
+                return b;
+              }));
+              addLog(`Đã tạo Video cho dòng ${brief.rowIndex} thành công.`, 'success');
+            }
+          } else {
+            addLog(`Đang tạo prompt ảnh cho dòng ${brief.rowIndex}...`, 'info');
+            
+            const promptResponse = await ai.models.generateContent({
+              model: 'gemini-3-flash-preview',
+              contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
 Nhiệm vụ của bạn là tạo ra một PROMPT chi tiết để AI có thể tạo ra hình ảnh/video chất lượng cao nhất.
 
 THÔNG TIN ĐẦU VÀO:
@@ -1662,81 +1680,84 @@ YÊU CẦU PROMPT:
 4. KHÔNG bao gồm các từ nhạy cảm hoặc bị cấm.
 5. Xuất kết quả là PROMPT TIẾNG ANH.
 6. BẮT BUỘC: Phần giải thích ý tưởng phải viết bằng tiếng Việt có dấu.`
-          });
-          
-          const imagePrompt = promptResponse.text || 'A beautiful photorealistic image';
-          addLog(`Đang sinh ảnh cho dòng ${brief.rowIndex}...`, 'info');
-          
-          const parts: any[] = [];
-          
-          if (brief.mediaReference) {
-            if (brief.mediaReference.startsWith('data:')) {
-              const base64Data = brief.mediaReference.split(',')[1];
-              const mimeType = brief.mediaReference.split(';')[0].split(':')[1];
-              parts.push({
-                inlineData: {
-                  data: base64Data,
-                  mimeType: mimeType
+            });
+            
+            const imagePrompt = promptResponse.text || 'A beautiful photorealistic image';
+            addLog(`Đang sinh ảnh cho dòng ${brief.rowIndex}...`, 'info');
+            
+            const parts: any[] = [];
+            
+            if (brief.mediaReference) {
+              if (brief.mediaReference.startsWith('data:')) {
+                const base64Data = brief.mediaReference.split(',')[1];
+                const mimeType = brief.mediaReference.split(';')[0].split(':')[1];
+                parts.push({
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType
+                  }
+                });
+                parts.push({ text: "Dựa vào phong cách và bố cục của ảnh mẫu này," });
+              } else {
+                parts.push({ text: `Dựa vào phong cách của ảnh mẫu tại link này: ${brief.mediaReference}.` });
+              }
+            }
+
+            parts.push({ text: imagePrompt });
+
+            const imageResponse = await ai.models.generateContent({
+              model: 'gemini-3.1-flash-image-preview',
+              contents: { parts },
+              config: {
+                imageConfig: {
+                  aspectRatio: (brief.mediaSize || "1:1") as any,
+                  imageSize: "1K"
                 }
-              });
-              parts.push({ text: "Dựa vào phong cách và bố cục của ảnh mẫu này," });
+              }
+            });
+            
+            const base64Data = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            
+            if (base64Data) {
+              setBriefs(prev => prev.map(b => {
+                if (b.id === brief.id) {
+                  const newHistoryItem: HistoryItem = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    content: b.content,
+                    imageUrl: b.imageUrl,
+                    imageBase64: base64Data,
+                    timestamp: new Date().toISOString(),
+                    status: 'image_generated',
+                    statusDetail: 'Đã tạo ảnh AI'
+                  };
+                  return { 
+                    ...b, 
+                    imageBase64: base64Data, 
+                    status: 'image_generated',
+                    statusDetail: 'Đã tạo ảnh AI',
+                    history: [newHistoryItem, ...b.history]
+                  };
+                }
+                return b;
+              }));
+              addLog(`Đã tạo ảnh cho dòng ${brief.rowIndex} thành công.`, 'success');
             } else {
-              parts.push({ text: `Dựa vào phong cách của ảnh mẫu tại link này: ${brief.mediaReference}.` });
+              throw new Error('Không nhận được dữ liệu ảnh từ API.');
             }
           }
-
-          parts.push({ text: imagePrompt });
-
-          const imageResponse = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-image-preview',
-            contents: { parts },
-            config: {
-              imageConfig: {
-                aspectRatio: (brief.mediaSize || "1:1") as any,
-                imageSize: "1K"
-              }
-            }
-          });
-          
-          const base64Data = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-          
-          if (base64Data) {
-            setBriefs(prev => prev.map(b => {
-              if (b.id === brief.id) {
-                const newHistoryItem: HistoryItem = {
-                  id: Math.random().toString(36).substr(2, 9),
-                  content: b.content,
-                  imageUrl: b.imageUrl,
-                  imageBase64: base64Data,
-                  timestamp: new Date().toISOString(),
-                  status: 'image_generated',
-                  statusDetail: 'Đã tạo ảnh AI'
-                };
-                return { 
-                  ...b, 
-                  imageBase64: base64Data, 
-                  status: 'image_generated',
-                  statusDetail: 'Đã tạo ảnh AI',
-                  history: [newHistoryItem, ...b.history]
-                };
-              }
-              return b;
-            }));
-            addLog(`Đã tạo ảnh cho dòng ${brief.rowIndex} thành công.`, 'success');
-          } else {
-            throw new Error('Không nhận được dữ liệu ảnh từ API.');
-          }
+        } catch (err: any) {
+          addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
+          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+        } finally {
+          count++;
+          setProgress(p => ({ ...p, current: count }));
         }
-      } catch (err: any) {
-        addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
-        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
-      } finally {
-        count++;
-        setProgress(p => ({ ...p, current: count }));
       }
-    }));
-    
-    setIsProcessing(false);
+    } catch (err: any) {
+      addLog(`Lỗi hệ thống khi tạo Media: ${err.message}`, 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const uploadImages = async () => {
