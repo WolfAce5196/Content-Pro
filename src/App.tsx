@@ -1772,31 +1772,64 @@ YÊU CẦU PROMPT:
         <header className="h-16 border-b border-border-subtle bg-bg-primary flex items-center justify-between px-6 shrink-0 relative z-10">
           <div className="flex items-center gap-4">
             <h2 className="font-display font-bold text-lg tracking-tight">Dashboard</h2>
-            {availableTabs.length > 0 && (
-              <div className="h-6 w-px bg-border-medium mx-2"></div>
-            )}
-            {user && availableTabs.length > 0 && (
+            
+            <div className="h-6 w-px bg-border-medium mx-2"></div>
+            <div className="flex items-center gap-3">
+              {/* Spreadsheet Selection */}
+              <div className="flex items-center gap-2 bg-bg-secondary rounded-lg px-3 py-1.5 border border-border-subtle">
+                <span className="text-xs text-text-muted font-medium uppercase tracking-wider">File:</span>
+                <div className="relative">
+                  <select 
+                    value={config.GOOGLE_SHEET_ID} 
+                    disabled={!accessToken}
+                    onChange={async e => {
+                      const newId = e.target.value;
+                      const newConfig = {...config, GOOGLE_SHEET_ID: newId, SHEET_GID: ""};
+                      setConfig(newConfig);
+                      if (user) {
+                        try {
+                          await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
+                        } catch (error: any) {
+                          console.error("Error saving config:", error);
+                        }
+                      }
+                    }}
+                    className="bg-transparent text-sm text-text-primary outline-none cursor-pointer appearance-none pr-5 font-medium hover:text-accent-primary transition-colors max-w-[180px] truncate disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="" className="bg-bg-secondary text-text-primary">
+                      {!accessToken ? "-- Chưa đăng nhập --" : "-- Chọn File --"}
+                    </option>
+                    {availableSpreadsheets.map(ss => (
+                      <option key={ss.id} value={ss.id} className="bg-bg-secondary text-text-primary">{ss.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-0 top-1 text-text-muted pointer-events-none" size={14} />
+                </div>
+              </div>
+
+              {/* Tab Selection */}
               <div className="flex items-center gap-2 bg-bg-secondary rounded-lg px-3 py-1.5 border border-border-subtle">
                 <span className="text-xs text-text-muted font-medium uppercase tracking-wider">Sheet:</span>
                 <div className="relative">
                   <select 
                     value={config.SHEET_GID} 
+                    disabled={!config.GOOGLE_SHEET_ID || availableTabs.length === 0}
                     onChange={async e => {
                       const newConfig = {...config, SHEET_GID: e.target.value};
                       setConfig(newConfig);
                       if (user) {
                         try {
-                          await setDoc(doc(db, 'users', user.uid), { config: newConfig }, { merge: true });
+                          await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
                         } catch (error: any) {
                           console.error("Error saving config:", error);
-                          if (error instanceof Error && error.message.includes('Missing or insufficient permissions')) {
-                            handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
-                          }
                         }
                       }
                     }}
-                    className="bg-transparent text-sm text-text-primary outline-none cursor-pointer appearance-none pr-5 font-medium hover:text-accent-primary transition-colors"
+                    className="bg-transparent text-sm text-text-primary outline-none cursor-pointer appearance-none pr-5 font-medium hover:text-accent-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
+                    <option value="" className="bg-bg-secondary text-text-primary">
+                      {!config.GOOGLE_SHEET_ID ? "-- Trống --" : "-- Chọn Tab --"}
+                    </option>
                     {availableTabs.map(tab => (
                       <option key={tab.id} value={tab.id} className="bg-bg-secondary text-text-primary">{tab.title}</option>
                     ))}
@@ -1804,7 +1837,7 @@ YÊU CẦU PROMPT:
                   <ChevronDown className="absolute right-0 top-1 text-text-muted pointer-events-none" size={14} />
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
