@@ -362,7 +362,6 @@ const WorkspacePanel = ({
   onContentClick, 
   onImageClick,
   isCollapsed,
-  onToggleCollapse,
   onRetry
 }: { 
   selectedBriefs: Brief[], 
@@ -370,25 +369,21 @@ const WorkspacePanel = ({
   onContentClick: (brief: Brief) => void,
   onImageClick: (brief: Brief) => void,
   isCollapsed: boolean,
-  onToggleCollapse: () => void,
   onRetry: (id: string) => void
 }) => {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
-      {/* Toggle Button */}
-      <button 
-        onClick={onToggleCollapse}
-        className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-secondary border border-border-subtle rounded-full flex items-center justify-center text-text-muted hover:text-accent-primary hover:border-accent-primary transition-all z-30 shadow-sm"
-      >
-        {isCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-      </button>
-
       <div className={`px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between sticky top-0 z-10 ${isCollapsed ? 'px-2 justify-center' : ''}`}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'flex-col gap-1' : ''}`}>
           <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20 shrink-0">
             {selectedBriefs.length}
           </div>
           {!isCollapsed && <h3 className="font-bold text-lg text-text-primary tracking-tight whitespace-nowrap">Không Gian Làm Việc</h3>}
+          {isCollapsed && (
+            <div className="[writing-mode:vertical-rl] rotate-180 text-text-muted text-[10px] font-bold uppercase tracking-widest opacity-50 mt-4">
+              KHÔNG GIAN LÀM VIỆC
+            </div>
+          )}
         </div>
         {!isCollapsed && (
           <button onClick={onClose} className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors">
@@ -472,7 +467,25 @@ const ContentDetailModal = ({ brief, onClose }: { brief: Brief, onClose: () => v
   );
 };
 
-const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded, addLog, setPreviewMedia }: { brief: Brief, updateBrief: (id: string, updates: Partial<Brief>) => void, onClose: () => void, onToggleExpand: () => void, isExpanded: boolean, addLog: (msg: string, type?: 'info'|'error'|'success') => void, setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void }) => {
+const PreviewPanel = ({ 
+  brief, 
+  updateBrief, 
+  onClose, 
+  onToggleExpand, 
+  isExpanded, 
+  addLog, 
+  setPreviewMedia,
+  isCollapsed
+}: { 
+  brief: Brief, 
+  updateBrief: (id: string, updates: Partial<Brief>) => void, 
+  onClose: () => void, 
+  onToggleExpand: () => void, 
+  isExpanded: boolean, 
+  addLog: (msg: string, type?: 'info'|'error'|'success') => void, 
+  setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void,
+  isCollapsed: boolean
+}) => {
   const [activeTab, setActiveTab] = useState<'content' | 'image' | 'history'>('content');
 
   const mediaSizes = {
@@ -490,6 +503,19 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded,
       reader.readAsDataURL(file);
     }
   };
+
+  if (isCollapsed) {
+    return (
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary items-center py-4 gap-4">
+        <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20 shrink-0">
+          {brief.rowIndex}
+        </div>
+        <div className="[writing-mode:vertical-rl] rotate-180 text-text-muted text-[10px] font-bold uppercase tracking-widest opacity-50">
+          CHI TIẾT BRIEF
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
@@ -2653,42 +2679,47 @@ YÊU CẦU PROMPT:
           </div>
 
           {/* Preview Panel Wrapper */}
-          <AnimatePresence>
-            {(activeBriefId || selectedIds.size > 0) && (
-              <motion.div 
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: isPreviewExpanded ? '100%' : (isWorkspaceCollapsed ? 68 : '40%'), opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-                className="flex flex-col bg-bg-secondary relative z-10 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
+          <motion.div 
+            initial={false}
+            animate={{ width: isPreviewExpanded ? '100%' : (isWorkspaceCollapsed ? 68 : '40%'), opacity: 1 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+            className="flex flex-col bg-bg-secondary relative z-10 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
+          >
+            {/* Global Toggle Button */}
+            {!isPreviewExpanded && (
+              <button 
+                onClick={() => setIsWorkspaceCollapsed(!isWorkspaceCollapsed)}
+                className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-secondary border border-border-subtle rounded-full flex items-center justify-center text-text-muted hover:text-accent-primary hover:border-accent-primary transition-all z-30 shadow-sm"
               >
-                {selectedIds.size > 0 ? (
-                  <WorkspacePanel 
-                    selectedBriefs={briefs.filter(b => selectedIds.has(b.id))}
-                    onClose={() => setSelectedIds(new Set())}
-                    onContentClick={(brief) => setContentDetailBrief(brief)}
-                    onImageClick={(brief) => setPreviewMedia({ 
-                      url: brief.imageBase64 ? `data:image/jpeg;base64,${brief.imageBase64}` : (brief.imageUrl || ''), 
-                      type: brief.mediaFormat === 'Video' ? 'video' : 'image' 
-                    })}
-                    isCollapsed={isWorkspaceCollapsed}
-                    onToggleCollapse={() => setIsWorkspaceCollapsed(!isWorkspaceCollapsed)}
-                    onRetry={retryBrief}
-                  />
-                ) : activeBriefId ? (
-                  <PreviewPanel 
-                    brief={briefs.find(b => b.id === activeBriefId)!} 
-                    updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}
-                    onClose={() => setActiveBriefId(null)}
-                    onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
-                    isExpanded={isPreviewExpanded}
-                    addLog={addLog}
-                    setPreviewMedia={setPreviewMedia}
-                  />
-                ) : null}
-              </motion.div>
+                {isWorkspaceCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+              </button>
             )}
-          </AnimatePresence>
+
+            {activeBriefId && selectedIds.size === 0 ? (
+              <PreviewPanel 
+                brief={briefs.find(b => b.id === activeBriefId)!} 
+                updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}
+                onClose={() => setActiveBriefId(null)}
+                onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
+                isExpanded={isPreviewExpanded}
+                addLog={addLog}
+                setPreviewMedia={setPreviewMedia}
+                isCollapsed={isWorkspaceCollapsed}
+              />
+            ) : (
+              <WorkspacePanel 
+                selectedBriefs={briefs.filter(b => selectedIds.has(b.id))}
+                onClose={() => setSelectedIds(new Set())}
+                onContentClick={(brief) => setContentDetailBrief(brief)}
+                onImageClick={(brief) => setPreviewMedia({ 
+                  url: brief.imageBase64 ? `data:image/jpeg;base64,${brief.imageBase64}` : (brief.imageUrl || ''), 
+                  type: brief.mediaFormat === 'Video' ? 'video' : 'image' 
+                })}
+                isCollapsed={isWorkspaceCollapsed}
+                onRetry={retryBrief}
+              />
+            )}
+          </motion.div>
         </main>
 
         {/* Log Console */}
