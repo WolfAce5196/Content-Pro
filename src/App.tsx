@@ -1013,6 +1013,20 @@ export default function App() {
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      
+      // Try to load from localStorage first for immediate UI response
+      const localBriefs = localStorage.getItem('ais_briefs_backup');
+      const localLogs = localStorage.getItem('ais_logs_backup');
+      if (localBriefs && briefs.length === 0) {
+        try {
+          setBriefs(JSON.parse(localBriefs));
+          if (localLogs) setLogs(JSON.parse(localLogs));
+          addLog('Đã khôi phục dữ liệu từ bộ nhớ tạm.', 'info');
+        } catch (e) {
+          console.error("Error parsing local backup:", e);
+        }
+      }
+
       if (currentUser) {
         setIsConfigLoading(true);
         setIsDataLoading(true);
@@ -1078,20 +1092,27 @@ export default function App() {
 
   // Auto-save briefs and logs
   useEffect(() => {
-    if (user && briefs.length > 0) {
-      const saveData = async () => {
-        try {
-          await setDoc(doc(db, 'userData', user.uid), {
-            briefs,
-            logs: logs.slice(0, 50), // Only save last 50 logs to avoid size limits
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        } catch (error) {
-          console.error("Error auto-saving data:", error);
-        }
-      };
-      const timer = setTimeout(saveData, 3000); // Debounce save
-      return () => clearTimeout(timer);
+    if (briefs.length > 0) {
+      // Always save to localStorage immediately for maximum persistence
+      localStorage.setItem('ais_briefs_backup', JSON.stringify(briefs));
+      localStorage.setItem('ais_logs_backup', JSON.stringify(logs.slice(0, 50)));
+      localStorage.setItem('ais_last_updated', new Date().toISOString());
+
+      if (user) {
+        const saveData = async () => {
+          try {
+            await setDoc(doc(db, 'userData', user.uid), {
+              briefs,
+              logs: logs.slice(0, 50), // Only save last 50 logs to avoid size limits
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch (error) {
+            console.error("Error auto-saving data:", error);
+          }
+        };
+        const timer = setTimeout(saveData, 3000); // Debounce save to Firestore
+        return () => clearTimeout(timer);
+      }
     }
   }, [briefs, logs, user]);
   const fetchHeaders = async () => {
@@ -1949,7 +1970,7 @@ YÊU CẦU PROMPT:
     if (filterTab === 'all') return true;
     if (filterTab === 'done') return brief.status === 'saved' || brief.statusDetail === 'Hoàn Thành';
     if (filterTab === 'pending') return brief.status === 'pending' || brief.statusDetail === 'Chưa Xử Lý';
-    if (filterTab === 'incomplete') return brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành';
+    if (filterTab === 'incomplete') return brief.status !== 'pending' && brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành';
     return true;
   });
 
