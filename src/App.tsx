@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
-import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink, History, Upload, Info } from 'lucide-react';
+import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink, History, Upload, Info, Plus, Link } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
@@ -59,11 +59,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 const DEFAULT_CONFIG = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
-  GOOGLE_SHEET_ID: "1U-3xK6atZMtLC3f_lOXkWqqFB2MgJqNaMZL3vf20km8",
-  SHEET_GID: "615081352",
+  GOOGLE_SHEET_ID: "",
+  SHEET_GID: "",
   GAS_WEB_APP_URL: "",
   IMGBB_API_KEY: "",
-  KNOWLEDGE_BASE: `[DÁN_NỘI_DUNG_KNOWLEDGE_BASE]`,
+  KNOWLEDGE_BASE_TEXT: "",
+  KNOWLEDGE_BASE_LINKS: [""],
+  KNOWLEDGE_BASE_FILES: [] as { name: string; type: string; data: string; size: string }[],
   COL_BRIEFS: ["Tóm Tắt", "Ghi chú"],
   COL_TONE: "",
   COL_CONTENT: "Content chi tiết",
@@ -610,6 +612,62 @@ export default function App() {
     reader.readAsDataURL(file);
   };
 
+  const handleKnowledgeFileUpload = async (files: FileList | null) => {
+    if (!files) return;
+    
+    const newFiles = [...config.KNOWLEDGE_BASE_FILES];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      
+      const filePromise = new Promise<{ name: string; type: string; data: string; size: string }>((resolve) => {
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          resolve({
+            name: file.name,
+            type: file.type,
+            data: result,
+            size: (file.size / 1024).toFixed(1) + ' KB'
+          });
+        };
+        
+        // For images and PDFs, read as DataURL (base64)
+        // For others, we can try reading as text if we want to extract content, 
+        // but for now, base64 is safer for multimodal Gemini
+        reader.readAsDataURL(file);
+      });
+      
+      const fileData = await filePromise;
+      newFiles.push(fileData);
+    }
+    
+    setConfig({ ...config, KNOWLEDGE_BASE_FILES: newFiles });
+    addLog(`Đã tải lên ${files.length} tài liệu vào Knowledge Base.`, 'success');
+  };
+
+  const removeKnowledgeFile = (index: number) => {
+    const newFiles = [...config.KNOWLEDGE_BASE_FILES];
+    newFiles.splice(index, 1);
+    setConfig({ ...config, KNOWLEDGE_BASE_FILES: newFiles });
+  };
+
+  const addKnowledgeLink = () => {
+    setConfig({ ...config, KNOWLEDGE_BASE_LINKS: [...config.KNOWLEDGE_BASE_LINKS, ""] });
+  };
+
+  const updateKnowledgeLink = (index: number, value: string) => {
+    const newLinks = [...config.KNOWLEDGE_BASE_LINKS];
+    newLinks[index] = value;
+    setConfig({ ...config, KNOWLEDGE_BASE_LINKS: newLinks });
+  };
+
+  const removeKnowledgeLink = (index: number) => {
+    const newLinks = [...config.KNOWLEDGE_BASE_LINKS];
+    newLinks.splice(index, 1);
+    setConfig({ ...config, KNOWLEDGE_BASE_LINKS: newLinks.length === 0 ? [""] : newLinks });
+  };
+
   const [isConfigLoading, setIsConfigLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
 
@@ -1081,25 +1139,51 @@ export default function App() {
 
         const toneInstruction = brief.tone ? `- Giọng điệu yêu cầu: ${brief.tone}` : '- Giọng điệu theo đúng yêu cầu trong Ghi chú (nếu có)';
 
+        const knowledgeBaseLinks = config.KNOWLEDGE_BASE_LINKS.filter(l => l.trim() !== "").map(l => `- ${l}`).join('\n');
+        const knowledgeBaseText = config.KNOWLEDGE_BASE_TEXT || "";
+        
+        const knowledgeBasePrompt = `
+KIẾN THỨC CHUYÊN NGÀNH:
+${knowledgeBaseText}
+${knowledgeBaseLinks ? `\nTÀI LIỆU THAM KHẢO (LINKS):\n${knowledgeBaseLinks}` : ""}
+`;
+
         const prompt = `Bạn là chuyên gia viết content marketing.
 
-KIẾN THỨC CHUYÊN NGÀNH:
-${config.KNOWLEDGE_BASE}
+${knowledgeBasePrompt}
 
 BRIEF:
 ${briefText}
 
 YÊU CẦU:
 - Viết content chi tiết, hấp dẫn, phù hợp với brief
-- Sử dụng kiến thức chuyên ngành đã cung cấp, KHÔNG bịa thông tin
+- Sử dụng kiến thức chuyên ngành đã cung cấp (bao gồm cả văn bản, liên kết và tài liệu đính kèm), KHÔNG bịa thông tin
 ${toneInstruction}
 - Độ dài: 150-500 từ (trừ khi brief yêu cầu khác)
 - Xuất content dạng text thuần, không dùng markdown
 - BẮT BUỘC: Viết bằng tiếng Việt có dấu.`;
 
+        // Prepare parts for multimodal input
+        const parts: any[] = [{ text: prompt }];
+        
+        // Add files to parts
+        config.KNOWLEDGE_BASE_FILES.forEach(file => {
+          if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+            parts.push({
+              inlineData: {
+                data: file.data.split(',')[1], // Remove data:mime;base64,
+                mimeType: file.type
+              }
+            });
+          } else {
+            // For other types, we just add them as text parts with a header
+            parts.push({ text: `\nNỘI DUNG TÀI LIỆU (${file.name}):\n${file.data.substring(0, 50000)}` }); // Limit size just in case
+          }
+        });
+
         const response = await ai.models.generateContent({
           model: 'gemini-3.1-pro-preview',
-          contents: prompt,
+          contents: [{ parts }],
         });
         
         const content = response.text || '';
@@ -2335,8 +2419,15 @@ YÊU CẦU PROMPT:
                       <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
                       Cách lấy Gemini API Key?
                     </summary>
-                    <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg">
-                      Truy cập <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-primary underline">Google AI Studio</a>, đăng nhập và nhấn "Create API key" để lấy mã.
+                    <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg space-y-2">
+                      <p className="font-medium text-text-primary">Các bước thực hiện:</p>
+                      <ol className="list-decimal pl-4 space-y-1">
+                        <li>Truy cập <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-accent-primary underline">Google AI Studio</a>.</li>
+                        <li>Đăng nhập bằng tài khoản Google của bạn.</li>
+                        <li>Nhấn nút <strong className="text-text-primary">"Create API key"</strong>.</li>
+                        <li>Chọn <strong className="text-text-primary">"Create API key in new project"</strong>.</li>
+                        <li>Sao chép mã (chuỗi ký tự dài) và dán vào ô trên.</li>
+                      </ol>
                     </div>
                   </details>
                 </div>
@@ -2348,10 +2439,10 @@ YÊU CẦU PROMPT:
                   </h3>
                   
                   {!accessToken ? (
-                    <div className="text-sm text-text-secondary mb-4 bg-bg-secondary p-3 rounded-lg border border-border-subtle">
-                      {user ? 'Phiên đăng nhập đã hết hạn quyền truy cập Google Sheet. Vui lòng đăng nhập lại.' : 'Đăng nhập bằng Google để chọn Sheet và Ghi dữ liệu trực tiếp không cần cài đặt Apps Script.'}
+                    <div className="text-sm text-text-secondary mb-4 bg-bg-secondary p-4 rounded-xl border border-border-subtle">
+                      <p className="mb-3">Đăng nhập bằng Google để chọn Sheet và Ghi dữ liệu trực tiếp không cần cài đặt Apps Script.</p>
                       
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button onClick={handleLogin} className="flex items-center gap-2 px-4 py-2 bg-bg-primary border border-border-medium text-text-primary rounded-lg font-medium hover:border-accent-primary hover:text-accent-primary hover:shadow-sm transition-all active:scale-95">
                           <LogIn size={16} /> {user ? 'Cấp lại quyền truy cập' : 'Đăng nhập với Google'}
                         </button>
@@ -2366,10 +2457,23 @@ YÊU CẦU PROMPT:
                           <Copy size={14} /> Sao chép tên miền hiện tại
                         </button>
                       </div>
-                      
-                      <p className="mt-2 text-[10px] text-text-muted italic">
-                        * Nếu gặp lỗi "unauthorized-domain", hãy sao chép tên miền trên và thêm vào "Authorized domains" trong Firebase Console.
-                      </p>
+
+                      <details className="mt-3 text-[11px] text-text-muted group">
+                        <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none italic">
+                          <ChevronDown size={10} className="group-open:rotate-180 transition-transform" />
+                          Tại sao cần đăng nhập?
+                        </summary>
+                        <div className="mt-2 p-3 bg-bg-tertiary rounded-lg space-y-2">
+                          <p>Việc đăng nhập giúp ứng dụng có quyền:</p>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>Tìm kiếm các tệp Google Sheet trong Drive của bạn.</li>
+                            <li>Đọc dữ liệu Brief từ các cột bạn đã chọn.</li>
+                            <li>Ghi trực tiếp Content và Link ảnh vào Sheet mà không cần cấu hình kỹ thuật phức tạp.</li>
+                          </ul>
+                          <p className="text-[10px] mt-2 italic">Chưa có Bảng tính? <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-accent-primary underline font-bold">Tạo Google Sheet mới ngay</a></p>
+                          <p className="text-[10px] mt-1">* Nếu gặp lỗi "unauthorized-domain", hãy sao chép tên miền trên và thêm vào "Authorized domains" trong Firebase Console.</p>
+                        </div>
+                      </details>
                     </div>
                   ) : (
                     <div className="text-sm text-status-success mb-4 flex items-center gap-1.5 font-medium bg-status-success/10 p-2.5 rounded-lg border border-status-success/20">
@@ -2379,145 +2483,122 @@ YÊU CẦU PROMPT:
                     </div>
                   )}
 
-                  <div className="space-y-4">
-                    {accessToken && (
-                      <div className="p-4 bg-bg-secondary border border-border-subtle rounded-xl space-y-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
-                            <Search size={14} className="text-accent-primary" />
-                            1. Chọn Bảng Tính (Spreadsheet)
-                          </label>
-                          
-                          {isFetchingSpreadsheets ? (
-                            <div className="flex items-center gap-2 text-sm text-text-muted p-2 bg-bg-tertiary rounded-lg border border-border-subtle italic">
-                              <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
-                              Đang tìm kiếm trong Drive của bạn...
-                            </div>
-                          ) : availableSpreadsheets.length > 0 ? (
-                            <div className="relative">
-                              <select 
-                                value={config.GOOGLE_SHEET_ID} 
-                                onChange={e => setConfig({...config, GOOGLE_SHEET_ID: e.target.value})}
-                                className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
-                              >
-                                <option value="">-- Chọn một Bảng tính từ Drive --</option>
-                                {availableSpreadsheets.map(ss => (
-                                  <option key={ss.id} value={ss.id}>{ss.name}</option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
-                            </div>
-                          ) : (
-                            <div className="text-xs text-status-warning p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg">
-                              Không tìm thấy file Google Sheet nào trong Drive. 
-                              <button onClick={() => accessToken && fetchSpreadsheets(accessToken)} className="ml-2 underline font-bold">Thử lại</button>
-                            </div>
-                          )}
-                          
-                          <div className="mt-2">
-                            <details className="text-xs text-text-muted group">
-                              <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
-                                <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
-                                Hoặc nhập ID/Link thủ công
-                              </summary>
-                              <input 
-                                type="text" 
-                                value={config.GOOGLE_SHEET_ID} 
-                                onChange={e => {
-                                  let val = e.target.value;
-                                  const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                                  if (match) val = match[1];
-                                  setConfig({...config, GOOGLE_SHEET_ID: val});
-                                }} 
-                                className="w-full mt-2 p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary text-xs" 
-                                placeholder="Dán link Google Sheet vào đây nếu không thấy trong danh sách"
-                              />
-                            </details>
-                          </div>
-                        </div>
-
-                        {config.GOOGLE_SHEET_ID && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="pt-4 border-t border-border-subtle"
-                          >
+                    <div className="space-y-4">
+                      {accessToken && (
+                        <div className="p-4 bg-bg-secondary border border-border-subtle rounded-xl space-y-4">
+                          <div>
                             <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
-                              <Layers size={14} className="text-accent-primary" />
-                              2. Chọn Tab (Sheet Nhỏ)
+                              <Search size={14} className="text-accent-primary" />
+                              1. Chọn Bảng Tính (Spreadsheet)
                             </label>
                             
-                            {isFetchingTabs ? (
+                            {isFetchingSpreadsheets ? (
                               <div className="flex items-center gap-2 text-sm text-text-muted p-2 bg-bg-tertiary rounded-lg border border-border-subtle italic">
                                 <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
-                                Đang lấy danh sách các tab...
+                                Đang tìm kiếm trong Drive của bạn...
                               </div>
-                            ) : availableTabs.length > 0 ? (
+                            ) : availableSpreadsheets.length > 0 ? (
                               <div className="relative">
                                 <select 
-                                  value={config.SHEET_GID} 
-                                  onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
+                                  value={config.GOOGLE_SHEET_ID} 
+                                  onChange={e => setConfig({...config, GOOGLE_SHEET_ID: e.target.value})}
                                   className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
                                 >
-                                  <option value="">-- Chọn Một Tab --</option>
-                                  {availableTabs.map(tab => (
-                                    <option key={tab.id} value={tab.id}>{tab.title}</option>
+                                  <option value="">-- Chọn một Bảng tính từ Drive --</option>
+                                  {availableSpreadsheets.map(ss => (
+                                    <option key={ss.id} value={ss.id}>{ss.name}</option>
                                   ))}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
                               </div>
                             ) : (
-                              <button 
-                                onClick={fetchTabs}
-                                className="w-full p-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/30 rounded-lg hover:bg-accent-primary/20 transition-colors text-sm font-medium"
-                              >
-                                Nhấn Để Tải Danh Sách Tab
-                              </button>
+                              <div className="text-xs text-status-warning p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg">
+                                Không tìm thấy file Google Sheet nào trong Drive. 
+                                <button onClick={() => accessToken && fetchSpreadsheets(accessToken)} className="ml-2 underline font-bold">Thử lại</button>
+                              </div>
                             )}
-                          </motion.div>
-                        )}
-                      </div>
-                    )}
+                          </div>
 
-                    {!accessToken && (
-                      <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL (Thủ công)</label>
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            value={config.GOOGLE_SHEET_ID} 
-                            onChange={e => {
-                              let val = e.target.value;
-                              const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                              if (match) val = match[1];
-                              setConfig({...config, GOOGLE_SHEET_ID: val});
-                            }} 
-                            className="flex-1 p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-secondary text-text-primary" 
-                            placeholder="Nhập ID hoặc dán link Google Sheet"
-                          />
-                          <button 
-                            onClick={fetchTabs} 
-                            disabled={isFetchingTabs || !config.GOOGLE_SHEET_ID}
-                            className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary disabled:opacity-50 whitespace-nowrap transition-colors"
-                          >
-                            {isFetchingTabs ? 'Đang tải...' : 'Lấy Tab'}
-                          </button>
+                          <div>
+                            <label className="block text-xs font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL (Thủ công)</label>
+                            <input 
+                              type="text" 
+                              value={config.GOOGLE_SHEET_ID} 
+                              onChange={e => {
+                                let val = e.target.value;
+                                const match = val.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                                if (match) val = match[1];
+                                setConfig({...config, GOOGLE_SHEET_ID: val});
+                              }} 
+                              className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary text-xs" 
+                              placeholder="Nhập ID hoặc dán link Google Sheet"
+                            />
+                          </div>
+
+                          {config.GOOGLE_SHEET_ID && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="pt-4 border-t border-border-subtle"
+                            >
+                              <label className="block text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
+                                <Layers size={14} className="text-accent-primary" />
+                                2. Chọn Tab (Sheet Nhỏ)
+                              </label>
+                              
+                              {isFetchingTabs ? (
+                                <div className="flex items-center gap-2 text-sm text-text-muted p-2 bg-bg-tertiary rounded-lg border border-border-subtle italic">
+                                  <div className="w-4 h-4 border-2 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
+                                  Đang lấy danh sách các tab...
+                                </div>
+                              ) : availableTabs.length > 0 ? (
+                                <div className="relative">
+                                  <select 
+                                    value={config.SHEET_GID} 
+                                    onChange={e => setConfig({...config, SHEET_GID: e.target.value})}
+                                    className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
+                                  >
+                                    <option value="">-- Chọn Một Tab --</option>
+                                    {availableTabs.map(tab => (
+                                      <option key={tab.id} value={tab.id}>{tab.title}</option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={fetchTabs}
+                                  className="w-full p-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/30 rounded-lg hover:bg-accent-primary/20 transition-colors text-sm font-medium"
+                                >
+                                  Nhấn Để Tải Danh Sách Tab
+                                </button>
+                              )}
+                            </motion.div>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">Google Apps Script Web App URL</label>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Google Apps Script Web App URL (Không cần cài đặt nếu đã kết nối được Google Sheet)</label>
                 <input type="text" value={config.GAS_WEB_APP_URL} onChange={e => setConfig({...config, GAS_WEB_APP_URL: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary" placeholder="https://script.google.com/macros/s/.../exec" />
                 <details className="mt-2 text-xs text-text-muted group">
                   <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
                     <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
-                    Cách lấy GAS Web App URL?
+                    Cách cài đặt Apps Script (Dành cho người dùng nâng cao)?
                   </summary>
-                  <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg">
-                    Xem hướng dẫn chi tiết ở phần "Hướng dẫn tạo Google Apps Script Web App" phía dưới cùng.
+                  <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg space-y-3">
+                    <p>Nếu bạn không muốn đăng nhập Google, bạn có thể dùng Apps Script làm cầu nối:</p>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      <li>Truy cập <a href="https://script.google.com" target="_blank" rel="noreferrer" className="text-accent-primary underline">Google Apps Script</a>.</li>
+                      <li>Mở Google Sheet, chọn <strong className="text-text-primary">Extensions &gt; Apps Script</strong>.</li>
+                      <li>Dán đoạn mã ở phần hướng dẫn chi tiết phía dưới.</li>
+                      <li>Nhấn <strong className="text-text-primary">Deploy &gt; New deployment</strong>.</li>
+                      <li>Chọn type là <strong className="text-text-primary">Web app</strong>.</li>
+                      <li>Execute as: <strong className="text-text-primary">Me</strong>. Who has access: <strong className="text-text-primary">Anyone</strong>.</li>
+                      <li>Sao chép URL nhận được và dán vào ô trên.</li>
+                    </ol>
                   </div>
                 </details>
               </div>
@@ -2529,14 +2610,125 @@ YÊU CẦU PROMPT:
                     <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
                     Cách lấy ImgBB API Key?
                   </summary>
-                  <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg">
-                    Đăng ký tài khoản tại <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-accent-primary underline">ImgBB API</a> và tạo API key để tải ảnh lên.
+                  <div className="mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg space-y-2">
+                    <p>ImgBB dùng để lưu trữ ảnh tạm thời trước khi đưa link vào Google Sheet:</p>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      <li>Truy cập <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-accent-primary underline">ImgBB API</a>.</li>
+                      <li>Đăng ký hoặc đăng nhập tài khoản.</li>
+                      <li>Nhấn <strong className="text-text-primary">"Create API Key"</strong>.</li>
+                      <li>Sao chép mã và dán vào ô trên.</li>
+                    </ol>
                   </div>
                 </details>
               </div>
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Knowledge Base (Kiến thức chuyên ngành)</label>
-                  <textarea value={config.KNOWLEDGE_BASE} onChange={e => setConfig({...config, KNOWLEDGE_BASE: e.target.value})} className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary h-24 font-mono text-sm bg-bg-tertiary text-text-primary" />
+                <div className="space-y-4 pt-4 border-t border-border-subtle">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-bold text-text-primary flex items-center gap-2">
+                      <BookOpen size={18} className="text-accent-primary" />
+                      Knowledge Base (Kiến thức chuyên ngành)
+                    </label>
+                    <details className="text-[10px] text-text-muted group">
+                      <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none italic">
+                        <ChevronDown size={10} className="group-open:rotate-180 transition-transform" />
+                        Nó hoạt động như thế nào?
+                      </summary>
+                      <div className="absolute right-6 mt-2 p-3 bg-bg-secondary border border-border-subtle rounded-lg shadow-xl z-10 max-w-xs">
+                        <p>AI sẽ đọc tất cả thông tin bạn cung cấp ở đây (văn bản, tệp PDF, ảnh, link web) để làm tư liệu viết bài. Giúp nội dung chính xác, đúng chuyên môn và không bịa đặt.</p>
+                      </div>
+                    </details>
+                  </div>
+                  
+                  {/* Section: Links */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                        <Link size={14} /> Thêm Link Tài Liệu
+                      </label>
+                      <button 
+                        onClick={addKnowledgeLink}
+                        className="text-accent-primary hover:text-accent-secondary flex items-center gap-1 text-xs font-bold transition-colors"
+                      >
+                        <Plus size={14} /> Thêm Link
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {config.KNOWLEDGE_BASE_LINKS.map((link, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <input 
+                            type="url" 
+                            value={link} 
+                            onChange={(e) => updateKnowledgeLink(idx, e.target.value)}
+                            className="flex-1 p-2 bg-bg-tertiary border border-border-medium rounded-lg text-xs text-text-primary outline-none focus:ring-1 focus:ring-accent-primary"
+                            placeholder="https://example.com/document"
+                          />
+                          {config.KNOWLEDGE_BASE_LINKS.length > 1 && (
+                            <button 
+                              onClick={() => removeKnowledgeLink(idx)}
+                              className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Section: File Upload */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                      <Upload size={14} /> Tải Tài Liệu (PDF, Ảnh, Excel...)
+                    </label>
+                    <div 
+                      className="border-2 border-dashed border-border-medium rounded-xl p-6 flex flex-col items-center justify-center gap-2 hover:border-accent-primary hover:bg-accent-primary/5 transition-all cursor-pointer group"
+                      onClick={() => document.getElementById('kb-file-upload')?.click()}
+                    >
+                      <UploadCloud size={32} className="text-text-muted group-hover:text-accent-primary transition-colors" />
+                      <p className="text-xs text-text-muted group-hover:text-text-primary">Kéo thả hoặc nhấn để tải lên nhiều tệp</p>
+                      <input 
+                        id="kb-file-upload"
+                        type="file" 
+                        multiple 
+                        className="hidden" 
+                        onChange={(e) => handleKnowledgeFileUpload(e.target.files)}
+                      />
+                    </div>
+                    
+                    {config.KNOWLEDGE_BASE_FILES.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                        {config.KNOWLEDGE_BASE_FILES.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-bg-tertiary border border-border-subtle rounded-lg group">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <FileText size={16} className="text-accent-primary shrink-0" />
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-xs text-text-primary font-medium truncate">{file.name}</span>
+                                <span className="text-[10px] text-text-muted">{file.size}</span>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => removeKnowledgeFile(idx)}
+                              className="p-1.5 text-text-muted hover:text-status-danger opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section: Text Content */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-semibold text-text-secondary flex items-center gap-1.5">
+                      <Edit3 size={14} /> Dán Nội Dung Trực Tiếp
+                    </label>
+                    <textarea 
+                      value={config.KNOWLEDGE_BASE_TEXT} 
+                      onChange={e => setConfig({...config, KNOWLEDGE_BASE_TEXT: e.target.value})} 
+                      className="w-full p-3 bg-bg-tertiary border border-border-medium rounded-xl focus:ring-2 focus:ring-accent-primary outline-none h-32 text-sm text-text-primary placeholder:text-text-muted" 
+                      placeholder="Dán nội dung kiến thức chuyên ngành vào đây..."
+                    />
+                  </div>
                 </div>
                 
                 <details className="mt-4 p-4 bg-bg-tertiary border border-border-medium rounded-lg text-sm text-text-secondary group">
@@ -2546,7 +2738,7 @@ YÊU CẦU PROMPT:
                   </summary>
                   <div className="mt-3">
                     <ol className="list-decimal pl-5 space-y-1 mb-3">
-                      <li>Mở Google Sheet của bạn, chọn <strong className="text-text-primary">Extensions &gt; Apps Script</strong>.</li>
+                      <li>Truy cập <a href="https://script.google.com" target="_blank" rel="noreferrer" className="text-accent-primary underline">Google Apps Script</a> hoặc mở Google Sheet của bạn, chọn <strong className="text-text-primary">Extensions &gt; Apps Script</strong>.</li>
                       <li>Xóa code cũ và dán đoạn code bên dưới vào.</li>
                       <li>Nhấn <strong className="text-text-primary">Deploy &gt; New deployment</strong>.</li>
                       <li>Chọn type là <strong className="text-text-primary">Web app</strong>.</li>
