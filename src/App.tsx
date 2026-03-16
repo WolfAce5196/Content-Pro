@@ -1855,7 +1855,7 @@ YÊU CẦU PROMPT:
           </div>
 
           {/* Column Config */}
-          {!isSidebarCollapsed && availableHeaders.length > 0 && (
+          {!isSidebarCollapsed && (
             <div className="space-y-4 pt-4 border-t border-border-subtle">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Cấu Hình Cột</h3>
@@ -2510,6 +2510,43 @@ YÊU CẦU PROMPT:
                     </div>
                   </div>
                 </section>
+
+                {/* Section 5: Knowledge Base */}
+                <section>
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center text-accent-primary">5</div>
+                    Kiến Thức Chuyên Ngành (Knowledge Base)
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      Cung cấp thêm dữ liệu chuyên sâu để AI tạo nội dung chính xác và chuyên nghiệp hơn.
+                    </p>
+                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
+                      <li><strong>Dán văn bản:</strong> Nhập trực tiếp các quy định, kiến thức sản phẩm.</li>
+                      <li><strong>Link tài liệu:</strong> Cung cấp các đường dẫn tham khảo từ website.</li>
+                      <li><strong>Tải tệp tin:</strong> Hỗ trợ PDF, Excel, Ảnh chứa thông tin chuyên môn.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                {/* Section 6: Column Config */}
+                <section>
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-accent-secondary/10 flex items-center justify-center text-accent-secondary">6</div>
+                    Cấu Hình Cột (Column Configuration)
+                  </h3>
+                  <div className="pl-10 space-y-3">
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      Thiết lập sự tương ứng giữa các cột trong Google Sheet và các trường dữ liệu trong ứng dụng.
+                    </p>
+                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
+                      <li><strong>Cột Brief:</strong> Chọn các cột chứa thông tin mô tả sản phẩm/dịch vụ.</li>
+                      <li><strong>Giọng Điệu:</strong> Chọn cột quy định phong cách viết bài.</li>
+                      <li><strong>Cột Content:</strong> Cột mà hệ thống sẽ ghi nội dung bài viết vào.</li>
+                      <li><strong>Cột Link Ảnh:</strong> Cột mà hệ thống sẽ ghi link hình ảnh/video vào.</li>
+                    </ul>
+                  </div>
+                </section>
               </div>
 
               <div className="px-6 py-4 border-t border-border-subtle bg-bg-tertiary flex justify-end shrink-0">
@@ -2599,6 +2636,33 @@ YÊU CẦU PROMPT:
                       <p className="text-sm text-text-secondary leading-relaxed">
                         Cung cấp mẫu để AI học tập. Bạn có thể dán link ảnh từ web hoặc tải ảnh trực tiếp từ máy tính. AI sẽ dựa vào đây để mô phỏng phong cách, bố cục và màu sắc.
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 p-4 bg-bg-tertiary rounded-xl border border-border-subtle">
+                    <div className="w-8 h-8 rounded-lg bg-accent-secondary/20 flex items-center justify-center text-accent-secondary shrink-0">
+                      <Settings size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-text-primary mb-1">Cấu Hình Cột</h3>
+                      <div className="space-y-3 mt-2">
+                        <div>
+                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Cột Brief</p>
+                          <p className="text-sm text-text-secondary">Chọn các cột chứa thông tin yêu cầu (ví dụ: Tên sản phẩm, Đặc điểm, Đối tượng). AI sẽ tổng hợp dữ liệu từ các cột này.</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Giọng Điệu Content</p>
+                          <p className="text-sm text-text-secondary">Chọn cột quy định phong cách viết (ví dụ: Hài hước, Chuyên nghiệp, Đồng cảm). Giúp nội dung nhất quán với thương hiệu.</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Cột Content</p>
+                          <p className="text-sm text-text-secondary">Cột đích để hệ thống tự động điền nội dung chi tiết sau khi AI tạo xong. Giúp đồng bộ dữ liệu về Google Sheet.</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Cột Link Ảnh</p>
+                          <p className="text-sm text-text-secondary">Cột đích để hệ thống tự động điền đường dẫn hình ảnh hoặc video sau khi tạo. Giúp quản lý tài nguyên media dễ dàng.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
