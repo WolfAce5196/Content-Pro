@@ -81,15 +81,15 @@
   }
 
   .badge-processing {
-    @apply bg-indigo-500/10 text-indigo-400 border-indigo-500/30;
+    @apply bg-indigo-500/30 text-indigo-100 border-indigo-400/70;
   }
 
   .badge-success {
-    @apply bg-emerald-500/10 text-emerald-400 border-emerald-500/30;
+    @apply bg-emerald-500/30 text-emerald-100 border-emerald-400/70;
   }
 
   .badge-error {
-    @apply bg-rose-500/10 text-rose-400 border-rose-500/30;
+    @apply bg-rose-500/30 text-rose-100 border-rose-400/70;
   }
 
   .input-field {
