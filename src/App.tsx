@@ -282,7 +282,7 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
   );
 };
 
-const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded, addLog }: { brief: Brief, updateBrief: (id: string, updates: Partial<Brief>) => void, onClose: () => void, onToggleExpand: () => void, isExpanded: boolean, addLog: (msg: string, type?: 'info'|'error'|'success') => void }) => {
+const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded, addLog, setPreviewMedia }: { brief: Brief, updateBrief: (id: string, updates: Partial<Brief>) => void, onClose: () => void, onToggleExpand: () => void, isExpanded: boolean, addLog: (msg: string, type?: 'info'|'error'|'success') => void, setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'image' | 'history'>('content');
 
   const mediaSizes = {
@@ -474,15 +474,25 @@ const PreviewPanel = ({ brief, updateBrief, onClose, onToggleExpand, isExpanded,
               <div className="w-full max-w-md mx-auto aspect-square bg-bg-tertiary rounded-2xl border border-border-medium flex items-center justify-center overflow-hidden relative group">
                 {brief.imageBase64 ? (
                   <>
-                    <img src={`data:image/jpeg;base64,${brief.imageBase64}`} alt="AI Generated" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                    <img 
+                      src={`data:image/jpeg;base64,${brief.imageBase64}`} 
+                      alt="AI Generated" 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-zoom-in" 
+                      onClick={() => setPreviewMedia({ url: `data:image/jpeg;base64,${brief.imageBase64}`, type: 'image' })}
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm pointer-events-none">
                       <span className="text-white font-medium flex items-center gap-2"><Maximize2 size={16}/> Click to view full</span>
                     </div>
                   </>
                 ) : brief.imageUrl ? (
                   <>
-                    <img src={brief.imageUrl} alt="Uploaded" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                    <img 
+                      src={brief.imageUrl} 
+                      alt="Uploaded" 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-zoom-in" 
+                      onClick={() => setPreviewMedia({ url: brief.imageUrl, type: brief.mediaFormat === 'Video' ? 'video' : 'image' })}
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm pointer-events-none">
                       <span className="text-white font-medium flex items-center gap-2"><Maximize2 size={16}/> Click to view full</span>
                     </div>
                   </>
@@ -671,6 +681,11 @@ export default function App() {
   const [isConfigLoading, setIsConfigLoading] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(false);
 
+  // New states for enhancements
+  const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete'>('all');
+  const [historyBriefId, setHistoryBriefId] = useState<string | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+
   const addLog = (msg: string, type: 'info'|'error'|'success' = 'info') => {
     const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
     setLogs(prev => [{ time, msg, type }, ...prev].slice(0, 100));
@@ -685,6 +700,147 @@ export default function App() {
       }
       return part;
     });
+  };
+
+  // History Modal Component
+  const HistoryModal = () => {
+    if (!historyBriefId) return null;
+    const brief = briefs.find(b => b.id === historyBriefId);
+    if (!brief) return null;
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+        onClick={() => setHistoryBriefId(null)}
+      >
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          className="bg-bg-secondary w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl border border-border-subtle overflow-hidden flex flex-col"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="p-6 border-b border-border-subtle flex items-center justify-between bg-bg-primary shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary">
+                <History size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-text-primary">Lịch sử phiên bản</h2>
+                <p className="text-xs text-text-muted">Brief dòng {brief.rowIndex}</p>
+              </div>
+            </div>
+            <button onClick={() => setHistoryBriefId(null)} className="p-2 hover:bg-bg-tertiary rounded-full transition-colors text-text-muted">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+            {brief.history && brief.history.length > 0 ? (
+              <div className="space-y-4">
+                {brief.history.slice().reverse().map((item, idx) => (
+                  <div key={item.id} className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle hover:border-accent-primary/50 transition-all group">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-accent-primary bg-accent-primary/10 px-2 py-1 rounded">v{brief.history.length - idx}</span>
+                        <span className="text-xs text-text-muted">{new Date(item.timestamp).toLocaleString()}</span>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          updateBriefField(brief.id, 'content', item.content);
+                          updateBriefField(brief.id, 'imageUrl', item.imageUrl);
+                          updateBriefField(brief.id, 'imageBase64', item.imageBase64 || '');
+                          addLog(`Đã khôi phục phiên bản v${brief.history.length - idx} cho brief dòng ${brief.rowIndex}`, 'success');
+                          setHistoryBriefId(null);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-bold rounded-lg hover:bg-accent-primary/80 transition-all shadow-sm opacity-0 group-hover:opacity-100"
+                      >
+                        <Save size={12} /> Khôi phục
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Content</h4>
+                        <div className="p-3 bg-bg-primary rounded-xl border border-border-subtle text-xs text-text-primary line-clamp-4 font-mono">
+                          {item.content}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Media</h4>
+                        <div className="aspect-video bg-bg-primary rounded-xl border border-border-subtle overflow-hidden relative">
+                          {item.imageBase64 ? (
+                            <img src={`data:image/jpeg;base64,${item.imageBase64}`} alt="History" className="w-full h-full object-cover" />
+                          ) : item.imageUrl ? (
+                            <img src={item.imageUrl} alt="History" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-text-muted">
+                              <ImageIcon size={20} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-text-muted gap-4">
+                <History size={48} className="opacity-20" />
+                <p className="text-sm">Chưa có lịch sử phiên bản cho brief này.</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
+  // Media Preview Modal Component
+  const MediaPreviewModal = () => {
+    if (!previewMedia) return null;
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl"
+        onClick={() => setPreviewMedia(null)}
+      >
+        <button 
+          onClick={() => setPreviewMedia(null)}
+          className="absolute top-6 right-6 p-3 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all z-10"
+        >
+          <X size={32} />
+        </button>
+
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="w-full max-w-6xl h-full flex items-center justify-center"
+          onClick={e => e.stopPropagation()}
+        >
+          {previewMedia.type === 'image' ? (
+            <img 
+              src={previewMedia.url} 
+              alt="Preview" 
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+            />
+          ) : (
+            <video 
+              src={previewMedia.url} 
+              controls 
+              autoPlay 
+              className="max-w-full max-h-full shadow-2xl rounded-lg"
+            />
+          )}
+        </motion.div>
+      </motion.div>
+    );
   };
 
   useEffect(() => {
@@ -1147,13 +1303,11 @@ export default function App() {
     const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
     let count = 0;
     
-    for (const id of selectedIds) {
-      const brief = briefs.find(b => b.id === id);
-      if (!brief) continue;
-      
+    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+
+    await Promise.all(selectedBriefs.map(async (brief) => {
       try {
         addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
-        setActiveBriefId(brief.id);
         
         const briefText = Object.entries(brief.briefData)
           .map(([key, value]) => `- ${key}: ${value}`)
@@ -1198,8 +1352,7 @@ ${toneInstruction}
               }
             });
           } else {
-            // For other types, we just add them as text parts with a header
-            parts.push({ text: `\nNỘI DUNG TÀI LIỆU (${file.name}):\n${file.data.substring(0, 50000)}` }); // Limit size just in case
+            parts.push({ text: `\nNỘI DUNG TÀI LIỆU (${file.name}):\n${file.data.substring(0, 50000)}` });
           }
         });
 
@@ -1211,7 +1364,7 @@ ${toneInstruction}
         const content = response.text || '';
         
         setBriefs(prev => prev.map(b => {
-          if (b.id === id) {
+          if (b.id === brief.id) {
             const newHistoryItem: HistoryItem = {
               id: Math.random().toString(36).substr(2, 9),
               content,
@@ -1234,12 +1387,12 @@ ${toneInstruction}
         addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
       } catch (err: any) {
         addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${err.message}`, 'error');
-        setBriefs(prev => prev.map(b => b.id === id ? { ...b, status: 'error' } : b));
+        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+      } finally {
+        count++;
+        setProgress(p => ({ ...p, current: count }));
       }
-      
-      count++;
-      setProgress(p => ({ ...p, current: count }));
-    }
+    }));
     
     setIsProcessing(false);
   };
@@ -1263,13 +1416,10 @@ ${toneInstruction}
     const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
     let count = 0;
     
-    for (const id of selectedIds) {
-      const brief = briefs.find(b => b.id === id);
-      if (!brief) continue;
-      
-      try {
-        setActiveBriefId(brief.id);
+    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
 
+    await Promise.all(selectedBriefs.map(async (brief) => {
+      try {
         if (brief.mediaFormat === 'Video') {
           addLog(`Đang tạo Video cho dòng ${brief.rowIndex}...`, 'info');
           
@@ -1298,7 +1448,7 @@ CONTENT CHI TIẾT: ${brief.content || ''}`;
             const videoUrl = `${downloadLink}?x-goog-api-key=${config.GEMINI_API_KEY}`;
             
             setBriefs(prev => prev.map(b => {
-              if (b.id === id) {
+              if (b.id === brief.id) {
                 const newHistoryItem: HistoryItem = {
                   id: Math.random().toString(36).substr(2, 9),
                   content: b.content,
@@ -1325,21 +1475,21 @@ CONTENT CHI TIẾT: ${brief.content || ''}`;
           const promptResponse = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
-Nhiệm vụ của bạn là tạo ra một PROMPT chi tiết để AI (như Midjourney, Stable Diffusion hoặc Veo) có thể tạo ra hình ảnh/video chất lượng cao nhất.
+Nhiệm vụ của bạn là tạo ra một PROMPT chi tiết để AI có thể tạo ra hình ảnh/video chất lượng cao nhất.
 
 THÔNG TIN ĐẦU VÀO:
 - TÓM TẮT BRIEF: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
-- MÔ TẢ MEDIA: ${brief.mediaDescription || 'Tự động sáng tạo dựa trên brief'}
+- MÔ TẢ MEDIA: ${brief.briefMedia || 'Tự động sáng tạo dựa trên brief'}
 - CONTENT CHI TIẾT: ${brief.content || 'Nội dung bài viết đi kèm'}
-- ĐỊNH DẠNG: ${brief.mediaFormat === 'video' ? 'Video' : 'Ảnh'}
-- TỈ LỆ: ${brief.aspectRatio || '1:1'}
+- ĐỊNH DẠNG: Ảnh
+- TỈ LỆ: ${brief.mediaSize || '1:1'}
 
 YÊU CẦU PROMPT:
-1. Mô tả chi tiết về bối cảnh, ánh sáng (cinematic lighting, soft box, sunlight...), góc chụp (eye-level, top-down, wide shot...).
-2. Mô tả về đối tượng chính, màu sắc chủ đạo, phong cách (photorealistic, 3D render, minimalist...).
-3. Nếu là Video: Mô tả chuyển động (slow motion, camera pan, zoom in...).
+1. Mô tả chi tiết về bối cảnh, ánh sáng, góc chụp.
+2. Mô tả về đối tượng chính, màu sắc chủ đạo, phong cách.
+3. Nếu là Video: Mô tả chuyển động.
 4. KHÔNG bao gồm các từ nhạy cảm hoặc bị cấm.
-5. Xuất kết quả là PROMPT TIẾNG ANH để AI hiểu tốt nhất.
+5. Xuất kết quả là PROMPT TIẾNG ANH.
 6. BẮT BUỘC: Phần giải thích ý tưởng phải viết bằng tiếng Việt có dấu.`
           });
           
@@ -1348,7 +1498,6 @@ YÊU CẦU PROMPT:
           
           const parts: any[] = [];
           
-          // Add reference image if exists
           if (brief.mediaReference) {
             if (brief.mediaReference.startsWith('data:')) {
               const base64Data = brief.mediaReference.split(',')[1];
@@ -1382,7 +1531,7 @@ YÊU CẦU PROMPT:
           
           if (base64Data) {
             setBriefs(prev => prev.map(b => {
-              if (b.id === id) {
+              if (b.id === brief.id) {
                 const newHistoryItem: HistoryItem = {
                   id: Math.random().toString(36).substr(2, 9),
                   content: b.content,
@@ -1409,12 +1558,12 @@ YÊU CẦU PROMPT:
         }
       } catch (err: any) {
         addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
-        setBriefs(prev => prev.map(b => b.id === id ? { ...b, status: 'error' } : b));
+        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+      } finally {
+        count++;
+        setProgress(p => ({ ...p, current: count }));
       }
-      
-      count++;
-      setProgress(p => ({ ...p, current: count }));
-    }
+    }));
     
     setIsProcessing(false);
   };
@@ -1645,6 +1794,14 @@ YÊU CẦU PROMPT:
     
     setIsProcessing(false);
   };
+
+  const filteredBriefs = briefs.filter(brief => {
+    if (filterTab === 'all') return true;
+    if (filterTab === 'done') return brief.status === 'saved' || brief.statusDetail === 'Hoàn Thành';
+    if (filterTab === 'pending') return brief.status === 'pending' || brief.statusDetail === 'Chưa Xử Lý';
+    if (filterTab === 'incomplete') return brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành';
+    return true;
+  });
 
   return (
     <div className="h-screen w-screen bg-bg-primary flex overflow-hidden font-sans text-text-primary selection:bg-accent-primary/30 selection:text-accent-primary">
@@ -1881,6 +2038,28 @@ YÊU CẦU PROMPT:
                     Đã chọn: <span className="text-text-primary font-bold">{selectedIds.size}</span>
                   </span>
                 </div>
+                
+                <div className="flex items-center gap-1 bg-bg-tertiary p-1 rounded-lg border border-border-subtle ml-2">
+                  {[
+                    { id: 'all', label: 'Tất Cả Brief' },
+                    { id: 'done', label: 'Brief Đã Làm' },
+                    { id: 'pending', label: 'Brief Chưa Làm' },
+                    { id: 'incomplete', label: 'Brief Cần Hoàn Thiện' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setFilterTab(tab.id as any)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        filterTab === tab.id 
+                          ? 'bg-accent-primary text-white shadow-sm' 
+                          : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
                 {selectedIds.size > 0 && (
                   <button onClick={() => setSelectedIds(new Set())} className="text-xs text-text-muted hover:text-status-danger transition-colors font-medium">
                     Bỏ chọn
@@ -1947,16 +2126,23 @@ YÊU CẦU PROMPT:
                     <th className="p-3 w-12 text-center bg-bg-primary">
                       <input type="checkbox" 
                         className="w-4 h-4 rounded border-border-medium bg-bg-tertiary text-accent-primary focus:ring-accent-primary/50 focus:ring-offset-bg-primary transition-colors cursor-pointer"
-                        checked={briefs.length > 0 && selectedIds.size === briefs.length}
+                        checked={filteredBriefs.length > 0 && Array.from(selectedIds).filter(id => filteredBriefs.some(b => b.id === id)).length === filteredBriefs.length}
                         onChange={(e) => {
-                          if (e.target.checked) setSelectedIds(new Set(briefs.map(b => b.id)));
-                          else setSelectedIds(new Set());
+                          if (e.target.checked) {
+                            const newSet = new Set(selectedIds);
+                            filteredBriefs.forEach(b => newSet.add(b.id));
+                            setSelectedIds(newSet);
+                          } else {
+                            const newSet = new Set(selectedIds);
+                            filteredBriefs.forEach(b => newSet.delete(b.id));
+                            setSelectedIds(newSet);
+                          }
                         }}
                       />
                     </th>
                     <th className="p-3 w-16 font-semibold bg-bg-primary">Dòng</th>
                     <th className="p-3 font-semibold bg-bg-primary">Tóm tắt Brief</th>
-                    <th className="p-3 font-semibold bg-bg-primary">Mô tả Media</th>
+                    <th className="p-3 w-[30%] font-semibold bg-bg-primary">Mô tả Media</th>
                     <th className="p-3 w-32 font-semibold bg-bg-primary">Định dạng</th>
                     <th className="p-3 w-48 font-semibold bg-bg-primary">Tham chiếu</th>
                     <th className="p-3 w-40 font-semibold bg-bg-primary">Trạng thái</th>
@@ -1964,7 +2150,7 @@ YÊU CẦU PROMPT:
                 </thead>
                 <tbody>
                   <AnimatePresence>
-                    {briefs.map(brief => (
+                    {filteredBriefs.map(brief => (
                       <motion.tr 
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -2006,7 +2192,7 @@ YÊU CẦU PROMPT:
                         </td>
                         <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
                           <textarea 
-                            className="w-full bg-transparent border-none focus:ring-0 text-xs text-text-primary italic resize-none p-0 min-h-[40px] scrollbar-none"
+                            className="w-full bg-transparent border-none focus:ring-0 text-xs text-text-primary italic resize-none p-0 min-h-[60px] scrollbar-none"
                             value={brief.briefMedia || ''}
                             onChange={(e) => updateBriefField(brief.id, 'briefMedia', e.target.value)}
                             placeholder="Nhập mô tả media..."
@@ -2086,7 +2272,19 @@ YÊU CẦU PROMPT:
                         </td>
                         <td className="p-3 rounded-r-xl border-y border-r border-border-subtle group-hover:border-border-medium transition-colors">
                           <div className="flex flex-col gap-1">
-                            <StatusBadge status={brief.status} />
+                            <div className="flex items-center justify-between gap-2">
+                              <StatusBadge status={brief.status} />
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setHistoryBriefId(brief.id);
+                                }}
+                                className="p-1 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded transition-colors"
+                                title="Lịch sử"
+                              >
+                                <History size={14} />
+                              </button>
+                            </div>
                             {brief.statusDetail && (
                               <span className="text-[10px] text-text-muted font-medium line-clamp-1">{brief.statusDetail}</span>
                             )}
@@ -2132,6 +2330,7 @@ YÊU CẦU PROMPT:
                   onToggleExpand={() => setIsPreviewExpanded(!isPreviewExpanded)}
                   isExpanded={isPreviewExpanded}
                   addLog={addLog}
+                  setPreviewMedia={setPreviewMedia}
                 />
               </motion.div>
             )}
@@ -2864,6 +3063,8 @@ function doGet(e) {
             </motion.div>
           </motion.div>
         )}
+        <HistoryModal />
+        <MediaPreviewModal />
       </AnimatePresence>
     </div>
   );
