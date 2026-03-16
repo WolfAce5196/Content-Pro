@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
-import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink, History, Upload, Info, Plus, Link } from 'lucide-react';
+import { Settings, Download, Edit3, Image as ImageIcon, UploadCloud, Save, XCircle, Trash2, LogIn, LogOut, ChevronDown, ChevronLeft, ChevronRight, FileText, MessageSquare, Menu, LayoutPanelLeft, Maximize2, Minimize2, Terminal, ChevronUp, CheckCircle2, AlertCircle, Loader2, Play, Database, CheckSquare, Square, PanelRightClose, PanelRightOpen, X, Search, Layers, Copy, BookOpen, ExternalLink, History, Upload, Info, Plus, Link, Zap } from 'lucide-react';
 import { signInWithPopup, signOut, onAuthStateChanged, User, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebase';
@@ -147,23 +147,23 @@ function parseCSV(text: string) {
   return result;
 }
 
-const btnPrimary = "flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-lg font-medium hover:from-indigo-600 hover:to-cyan-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-sm shadow-lg shadow-indigo-500/30";
-const btnSecondary = "flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 rounded-lg font-medium hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 text-sm shadow-sm";
+const btnPrimary = "flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-lg font-bold uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed text-[10px] shadow-md shadow-accent-primary/25";
+const btnSecondary = "flex items-center gap-2 px-4 py-2 bg-bg-tertiary text-text-primary border border-white/5 rounded-lg font-bold uppercase tracking-widest hover:bg-white/5 hover:border-accent-primary/40 transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed text-[10px] shadow-inner";
 
 const StatusBadge = ({ status }: { status: string }) => {
   const config: Record<string, { color: string, text: string, dot: string }> = {
-    pending: { color: 'badge-neutral', text: 'Chưa xử lý', dot: 'bg-text-muted' },
-    content_generated: { color: 'badge-processing', text: 'Đã có Content', dot: 'bg-accent-primary animate-pulse' },
-    image_generated: { color: 'badge-success', text: 'Đã có Ảnh', dot: 'bg-status-success' },
-    uploaded: { color: 'bg-status-warning/15 text-status-warning', text: 'Đã Upload', dot: 'bg-status-warning' },
-    saved: { color: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30', text: 'Hoàn thành', dot: 'bg-emerald-400' },
-    error: { color: 'badge-error', text: 'Lỗi', dot: 'bg-status-danger' },
+    pending: { color: 'badge-neutral', text: 'Chưa xử lý', dot: 'bg-slate-500' },
+    content_generated: { color: 'badge-processing', text: 'Đã có Content', dot: 'bg-accent-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]' },
+    image_generated: { color: 'badge-success', text: 'Đã có Ảnh', dot: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' },
+    uploaded: { color: 'bg-amber-500/10 text-amber-400 border border-amber-500/30', text: 'Đã Upload', dot: 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]' },
+    saved: { color: 'badge-success', text: 'Hoàn thành', dot: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' },
+    error: { color: 'badge-error', text: 'Lỗi', dot: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]' },
   };
-  const c = config[status] || { color: 'badge-neutral', text: status, dot: 'bg-text-muted' };
+  const c = config[status] || { color: 'badge-neutral', text: status, dot: 'bg-slate-500' };
 
   return (
-    <span className={`badge ${c.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot} shadow-[0_0_8px_currentColor]`}></span>
+    <span className={`badge ${c.color} shadow-lg`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`}></span>
       {c.text}
     </span>
   );
@@ -187,7 +187,7 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
     <div className="relative w-full" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary border border-border-medium text-text-primary rounded-lg text-sm hover:border-border-focus transition-colors w-full shadow-sm"
+        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary/50 border border-white/5 text-text-primary rounded-lg text-xs hover:border-accent-primary/50 transition-colors w-full shadow-sm"
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {Icon && <Icon size={14} className="text-text-muted shrink-0" />}
@@ -202,7 +202,7 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-border-medium rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
+            className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-white/5 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
           >
             <div className="p-1.5 space-y-0.5">
               {options.map((opt: string, i: number) => (
@@ -219,15 +219,15 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
                         onChange(newSelected);
                       }}
                     />
-                    <div className="w-4 h-4 rounded border border-border-medium bg-bg-secondary peer-checked:bg-accent-primary peer-checked:border-accent-primary transition-all flex items-center justify-center">
+                    <div className="w-4 h-4 rounded border border-white/10 bg-bg-secondary peer-checked:bg-accent-primary peer-checked:border-accent-primary transition-all flex items-center justify-center">
                       <svg className={`w-3 h-3 text-white transition-transform ${selected.includes(opt) ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     </div>
                   </div>
-                  <span className="text-sm text-text-primary truncate group-hover:text-white transition-colors">{opt}</span>
+                  <span className="text-xs text-text-primary truncate group-hover:text-white transition-colors">{opt}</span>
                 </label>
               ))}
               {options.length === 0 && (
-                <div className="p-3 text-sm text-text-muted text-center italic">Không có cột nào</div>
+                <div className="p-3 text-xs text-text-muted text-center italic">Không có cột nào</div>
               )}
             </div>
           </motion.div>
@@ -255,7 +255,7 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
     <div className="relative w-full" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary border border-border-medium text-text-primary rounded-lg text-sm hover:border-border-focus transition-colors w-full shadow-sm"
+        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary/50 border border-white/5 text-text-primary rounded-lg text-xs hover:border-accent-primary/50 transition-colors w-full shadow-sm"
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {Icon && <Icon size={14} className="text-text-muted shrink-0" />}
@@ -270,7 +270,7 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
-            className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-border-medium rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
+            className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-white/5 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
           >
             <div className="p-1.5 space-y-0.5">
               {options.map((opt: string, i: number) => (
@@ -279,12 +279,12 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
                   onClick={() => { onChange(opt); setIsOpen(false); }}
                   className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer transition-colors ${selected === opt ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-primary'}`}
                 >
-                  <span className="text-sm truncate">{opt}</span>
+                  <span className="text-xs truncate">{opt}</span>
                   {selected === opt && <CheckCircle2 size={14} className="ml-auto shrink-0" />}
                 </button>
               ))}
               {options.length === 0 && (
-                <div className="p-3 text-sm text-text-muted text-center italic">Không có cột nào</div>
+                <div className="p-3 text-xs text-text-muted text-center italic">Không có cột nào</div>
               )}
             </div>
           </motion.div>
@@ -304,22 +304,22 @@ interface WorkspaceItemProps {
 
 const WorkspaceItem = ({ brief, onContentClick, onImageClick, onRetry }: WorkspaceItemProps) => {
   return (
-    <div className="flex gap-4 p-4 border-b border-border-subtle hover:bg-bg-tertiary/30 transition-colors group relative">
+    <div className="flex gap-4 p-4 border-b border-white/5 hover:bg-bg-tertiary/30 transition-colors group relative">
       {/* Error Overlay & Retry Button */}
       {brief.status === 'error' && (
         <div className="absolute inset-0 bg-status-danger/5 backdrop-blur-[1px] z-20 flex items-center justify-center gap-3">
           <div className="bg-bg-secondary border border-status-danger/30 rounded-xl p-3 shadow-xl flex items-center gap-3">
             <AlertCircle size={20} className="text-status-danger" />
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-text-primary">Xảy ra lỗi</span>
-              <span className="text-[10px] text-text-muted max-w-[150px] truncate">{brief.statusDetail}</span>
+              <span className="text-sm font-bold text-text-primary">Xảy ra lỗi</span>
+              <span className="text-[11px] text-text-muted max-w-[150px] truncate">{brief.statusDetail}</span>
             </div>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 onRetry();
               }}
-              className="ml-2 px-3 py-1.5 bg-status-danger text-white rounded-lg text-[10px] font-bold hover:bg-status-danger/80 transition-colors flex items-center gap-1.5"
+              className="ml-2 px-3 py-1.5 bg-status-danger text-white rounded-lg text-[11px] font-bold hover:bg-status-danger/80 transition-colors flex items-center gap-1.5"
             >
               <History size={12} />
               LÀM LẠI
@@ -331,12 +331,12 @@ const WorkspaceItem = ({ brief, onContentClick, onImageClick, onRetry }: Workspa
       {/* Content Box */}
       <div 
         onClick={onContentClick}
-        className="flex-1 bg-bg-tertiary rounded-xl border border-border-medium p-4 cursor-pointer hover:border-accent-primary/50 transition-all relative overflow-hidden min-h-[120px]"
+        className="flex-1 bg-bg-tertiary/30 rounded-xl border border-white/5 p-4 cursor-pointer hover:border-accent-primary/50 transition-all relative overflow-hidden min-h-[120px]"
       >
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <Maximize2 size={14} className="text-text-muted" />
         </div>
-        <div className="text-[10px] font-bold text-accent-primary uppercase tracking-wider mb-2 flex justify-between">
+        <div className="text-[11px] font-bold text-accent-primary uppercase tracking-wider mb-2 flex justify-between">
           <span>Dòng {brief.rowIndex}</span>
           {brief.statusDetail && <span className="text-text-muted">{brief.statusDetail}</span>}
         </div>
@@ -348,7 +348,7 @@ const WorkspaceItem = ({ brief, onContentClick, onImageClick, onRetry }: Workspa
       {/* Image Box */}
       <div 
         onClick={onImageClick}
-        className="w-32 h-32 shrink-0 bg-bg-tertiary rounded-xl border border-border-medium overflow-hidden cursor-pointer hover:border-accent-primary/50 transition-all group/img relative"
+        className="w-32 h-32 shrink-0 bg-bg-tertiary/30 rounded-xl border border-white/5 overflow-hidden cursor-pointer hover:border-accent-primary/50 transition-all group/img relative"
       >
         {brief.imageBase64 ? (
           <img src={`data:image/jpeg;base64,${brief.imageBase64}`} className="w-full h-full object-cover" alt="AI" />
@@ -357,7 +357,7 @@ const WorkspaceItem = ({ brief, onContentClick, onImageClick, onRetry }: Workspa
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-text-muted gap-2">
             <ImageIcon size={20} />
-            <span className="text-[10px]">Chưa có ảnh</span>
+            <span className="text-[11px]">Chưa có ảnh</span>
           </div>
         )}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
@@ -384,22 +384,27 @@ const WorkspacePanel = ({
   onRetry: (id: string) => void
 }) => {
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
-      <div className={`px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between sticky top-0 z-10 ${isCollapsed ? 'px-2 justify-center' : ''}`}>
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative border-l border-white/5">
+      <div className={`px-6 py-4 border-b border-white/5 bg-bg-tertiary/50 flex items-center justify-between sticky top-0 z-10 ${isCollapsed ? 'px-2 justify-center' : ''}`}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'flex-col gap-1' : ''}`}>
-          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-bold text-sm border border-accent-primary/20 shadow-sm shrink-0">
             {selectedBriefs.length}
           </div>
-          {!isCollapsed && <h3 className="font-bold text-lg text-text-primary tracking-tight whitespace-nowrap">Không Gian Làm Việc</h3>}
+          {!isCollapsed && (
+            <div className="flex flex-col">
+              <h3 className="font-bold text-base text-text-primary tracking-tight">Không Gian Làm Việc</h3>
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Xử lý tập trung</span>
+            </div>
+          )}
           {isCollapsed && (
-            <div className="[writing-mode:vertical-rl] rotate-180 text-text-muted text-[10px] font-bold uppercase tracking-widest opacity-50 mt-4">
+            <div className="[writing-mode:vertical-rl] rotate-180 text-text-muted text-[9px] font-bold uppercase tracking-widest opacity-50 mt-4">
               KHÔNG GIAN LÀM VIỆC
             </div>
           )}
         </div>
         {!isCollapsed && (
-          <button onClick={onClose} className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors">
-            <X size={18} />
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-all hover:scale-110">
+            <X size={16} />
           </button>
         )}
       </div>
@@ -431,36 +436,36 @@ const ContentDetailModal = ({ brief, onClose }: { brief: Brief, onClose: () => v
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-bg-secondary w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-border-subtle"
+        className="bg-bg-secondary w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/5"
       >
-        <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-tertiary">
-          <h3 className="font-bold text-lg text-text-primary">Chi tiết nội dung & Ảnh (Dòng {brief.rowIndex})</h3>
-          <button onClick={onClose} className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors">
-            <X size={20} />
+        <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-bg-tertiary/50">
+          <h3 className="font-bold text-base text-text-primary">Chi tiết nội dung & Ảnh (Dòng {brief.rowIndex})</h3>
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors">
+            <X size={16} />
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {/* Content Area */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-accent-primary uppercase tracking-widest">Nội dung bài viết</h4>
+              <h4 className="text-[11px] font-bold text-accent-primary uppercase tracking-widest">Nội dung bài viết</h4>
               <button 
                 onClick={() => navigator.clipboard.writeText(brief.content)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 text-accent-primary rounded-lg text-xs font-bold hover:bg-accent-primary/20 transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 text-accent-primary rounded-lg text-[11px] font-bold hover:bg-accent-primary/20 transition-all"
               >
-                <Download size={14} /> Copy Content
+                <Download size={12} /> Copy Content
               </button>
             </div>
-            <div className="bg-bg-tertiary p-6 rounded-xl border border-border-medium text-text-primary whitespace-pre-wrap leading-relaxed font-serif text-lg">
+            <div className="bg-bg-tertiary/30 p-6 rounded-xl border border-white/5 text-text-primary whitespace-pre-wrap leading-relaxed font-serif text-sm">
               {brief.content || <span className="text-text-muted italic">Chưa có nội dung...</span>}
             </div>
           </div>
 
           {/* Image Area */}
           <div className="space-y-4">
-            <h4 className="text-sm font-bold text-accent-primary uppercase tracking-widest">Hình ảnh minh họa</h4>
-            <div className="w-full aspect-video bg-bg-tertiary rounded-xl border border-border-medium overflow-hidden">
+            <h4 className="text-[11px] font-bold text-accent-primary uppercase tracking-widest">Hình ảnh minh họa</h4>
+            <div className="w-full aspect-video bg-bg-tertiary/30 rounded-xl border border-white/5 overflow-hidden">
               {brief.imageBase64 ? (
                 <img src={`data:image/jpeg;base64,${brief.imageBase64}`} className="w-full h-full object-contain" alt="AI" />
               ) : brief.imageUrl ? (
@@ -468,7 +473,7 @@ const ContentDetailModal = ({ brief, onClose }: { brief: Brief, onClose: () => v
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
                   <ImageIcon size={48} className="opacity-20 mb-2" />
-                  <p>Chưa có ảnh minh họa</p>
+                  <p className="text-xs">Chưa có ảnh minh họa</p>
                 </div>
               )}
             </div>
@@ -519,10 +524,10 @@ const PreviewPanel = ({
   if (isCollapsed) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary items-center py-4 gap-4">
-        <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20 shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-bold text-sm border border-accent-primary/20 shrink-0">
           {brief.rowIndex}
         </div>
-        <div className="[writing-mode:vertical-rl] rotate-180 text-text-muted text-[10px] font-bold uppercase tracking-widest opacity-50">
+        <div className="[writing-mode:vertical-rl] rotate-180 text-text-muted text-[9px] font-bold uppercase tracking-widest opacity-50">
           CHI TIẾT BRIEF
         </div>
       </div>
@@ -531,29 +536,29 @@ const PreviewPanel = ({
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
-      <div className="px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between sticky top-0 z-10">
+      <div className="px-6 py-4 border-b border-white/5 bg-bg-tertiary/50 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20">
+          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-bold text-sm border border-accent-primary/20">
             {brief.rowIndex}
           </div>
-          <h3 className="font-bold text-lg text-text-primary tracking-tight">Chi tiết Brief</h3>
+          <h3 className="font-bold text-base text-text-primary tracking-tight">Chi tiết Brief</h3>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onToggleExpand} className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors" title={isExpanded ? "Thu nhỏ" : "Mở rộng"}>
-            {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          <button onClick={onToggleExpand} className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors" title={isExpanded ? "Thu nhỏ" : "Mở rộng"}>
+            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
-          <button onClick={onClose} className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors" title="Đóng">
-            <X size={18} />
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors" title="Đóng">
+            <X size={16} />
           </button>
         </div>
       </div>
 
-      <div className="px-6 pt-4 border-b border-border-subtle bg-bg-secondary overflow-y-auto max-h-[40%] scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+      <div className="px-6 pt-4 border-b border-white/5 bg-bg-secondary overflow-y-auto max-h-[40%] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         <div className="space-y-4 mb-6">
           {/* Original Brief Data */}
           <div className="grid grid-cols-1 gap-2">
             {Object.entries(brief.briefData).map(([key, value]) => (
-              <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-sm">
+              <div key={key} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 text-xs">
                 <span className="font-medium text-text-secondary w-32 shrink-0">{key}:</span>
                 <span className="text-text-primary">{value || <span className="text-text-muted italic">Trống</span>}</span>
               </div>
@@ -561,35 +566,35 @@ const PreviewPanel = ({
           </div>
 
           {/* New Media Fields */}
-          <div className="pt-4 border-t border-border-subtle/50 space-y-4">
+          <div className="pt-4 border-t border-white/5 space-y-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Brief Media (Mô tả ảnh/video)</label>
+              <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Brief Media (Mô tả ảnh/video)</label>
               <textarea 
                 value={brief.briefMedia || ''} 
                 onChange={e => updateBrief(brief.id, { briefMedia: e.target.value })}
-                className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none min-h-[80px]"
+                className="w-full p-2 bg-bg-tertiary/30 border border-white/5 rounded-lg text-xs text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none min-h-[60px]"
                 placeholder="Nhập mô tả, mong muốn để AI tạo ảnh/video..."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Định dạng</label>
+                <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Định dạng</label>
                 <select 
                   value={brief.mediaFormat || 'Ảnh'} 
                   onChange={e => updateBrief(brief.id, { mediaFormat: e.target.value as any, mediaSize: mediaSizes[e.target.value as keyof typeof mediaSizes][0] })}
-                  className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none"
+                  className="w-full p-2 bg-bg-tertiary/30 border border-white/5 rounded-lg text-xs text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none"
                 >
                   <option value="Ảnh">Ảnh</option>
                   <option value="Video">Video</option>
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Kích thước</label>
+                <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Kích thước</label>
                 <select 
                   value={brief.mediaSize || '1:1'} 
                   onChange={e => updateBrief(brief.id, { mediaSize: e.target.value })}
-                  className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none"
+                  className="w-full p-2 bg-bg-tertiary/30 border border-white/5 rounded-lg text-xs text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none"
                 >
                   {mediaSizes[brief.mediaFormat || 'Ảnh'].map(size => (
                     <option key={size} value={size}>{size}</option>
@@ -599,17 +604,17 @@ const PreviewPanel = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Tham chiếu media</label>
+              <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Tham chiếu media</label>
               <div className="flex gap-2">
                 <input 
                   type="text" 
                   value={brief.mediaReference?.startsWith('data:') ? 'Đã tải ảnh lên' : (brief.mediaReference || '')} 
                   onChange={e => updateBrief(brief.id, { mediaReference: e.target.value })}
-                  className="flex-1 p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-sm text-text-primary focus:ring-2 focus:ring-accent-primary outline-none"
+                  className="flex-1 p-2 bg-bg-tertiary/30 border border-white/5 rounded-lg text-xs text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none"
                   placeholder="Dán link ảnh mẫu..."
                 />
-                <label className="p-2.5 bg-bg-tertiary border border-border-medium rounded-xl text-text-secondary hover:text-accent-primary hover:border-accent-primary/50 cursor-pointer transition-all">
-                  <UploadCloud size={18} />
+                <label className="p-2 bg-bg-tertiary/30 border border-white/5 rounded-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary/50 cursor-pointer transition-all">
+                  <UploadCloud size={16} />
                   <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
                 </label>
               </div>
@@ -621,10 +626,10 @@ const PreviewPanel = ({
         <div className="flex items-center gap-6 relative">
           <button 
             onClick={() => setActiveTab('content')}
-            className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'content' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`pb-3 text-xs font-medium transition-colors relative ${activeTab === 'content' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
           >
             <div className="flex items-center gap-2">
-              <FileText size={16} /> Content
+              <FileText size={14} /> Content
             </div>
             {activeTab === 'content' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-t-full" />
@@ -632,10 +637,10 @@ const PreviewPanel = ({
           </button>
           <button 
             onClick={() => setActiveTab('image')}
-            className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'image' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`pb-3 text-xs font-medium transition-colors relative ${activeTab === 'image' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
           >
             <div className="flex items-center gap-2">
-              <ImageIcon size={16} /> Ảnh/Video
+              <ImageIcon size={14} /> Ảnh/Video
             </div>
             {activeTab === 'image' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-t-full" />
@@ -643,10 +648,10 @@ const PreviewPanel = ({
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`pb-3 text-sm font-medium transition-colors relative ${activeTab === 'history' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`pb-3 text-xs font-medium transition-colors relative ${activeTab === 'history' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
           >
             <div className="flex items-center gap-2">
-              <History size={16} /> Lịch sử
+              <History size={14} /> Lịch sử
             </div>
             {activeTab === 'history' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-t-full" />
@@ -655,7 +660,7 @@ const PreviewPanel = ({
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+      <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
         <AnimatePresence mode="wait">
           {activeTab === 'content' ? (
             <motion.div 
@@ -667,22 +672,22 @@ const PreviewPanel = ({
               className="h-full flex flex-col"
             >
               {!brief.content && brief.status !== 'content_generated' ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-4 border border-dashed border-border-medium rounded-xl p-8">
-                  <div className="w-16 h-16 rounded-full bg-bg-tertiary flex items-center justify-center">
+                <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-4 border border-dashed border-white/10 rounded-xl p-8">
+                  <div className="w-16 h-16 rounded-full bg-bg-tertiary/50 flex items-center justify-center">
                     <Edit3 size={24} className="text-text-secondary" />
                   </div>
-                  <p className="text-sm">Chọn dòng brief và nhấn Tạo Content</p>
+                  <p className="text-xs">Chọn dòng brief và nhấn Tạo Content</p>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col bg-bg-tertiary rounded-xl border border-border-medium overflow-hidden focus-within:border-accent-primary focus-within:shadow-[0_0_20px_rgba(108,92,231,0.15)] transition-all">
-                  <div className="px-4 py-2 border-b border-border-medium flex justify-between items-center bg-bg-secondary">
-                    <span className="text-xs font-medium text-text-secondary">{brief.content.length} ký tự</span>
+                <div className="flex-1 flex flex-col bg-bg-tertiary/50 rounded-xl border border-white/5 overflow-hidden focus-within:border-accent-primary focus-within:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all">
+                  <div className="px-4 py-2 border-b border-white/5 flex justify-between items-center bg-bg-secondary">
+                    <span className="text-[10px] font-medium text-text-secondary">{brief.content.length} ký tự</span>
                     <button onClick={() => navigator.clipboard.writeText(brief.content)} className="p-1.5 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded-md transition-colors" title="Copy content">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
                   </div>
                   <textarea 
-                    className="flex-1 w-full p-4 resize-none focus:outline-none bg-transparent text-text-primary font-mono text-sm leading-relaxed"
+                    className="flex-1 w-full p-4 resize-none focus:outline-none bg-transparent text-text-primary font-mono text-xs leading-relaxed"
                     value={brief.content}
                     onChange={(e) => updateBrief(brief.id, { content: e.target.value })}
                     placeholder="Content sẽ hiển thị ở đây..."
@@ -699,7 +704,7 @@ const PreviewPanel = ({
               transition={{ duration: 0.2 }}
               className="h-full flex flex-col gap-6"
             >
-              <div className="w-full max-w-md mx-auto aspect-square bg-bg-tertiary rounded-2xl border border-border-medium flex items-center justify-center overflow-hidden relative group">
+              <div className="w-full max-w-md mx-auto aspect-square bg-bg-tertiary/50 rounded-2xl border border-white/5 flex items-center justify-center overflow-hidden relative group">
                 {brief.imageBase64 ? (
                   <>
                     <img 
@@ -726,27 +731,27 @@ const PreviewPanel = ({
                   </>
                 ) : (
                   <div className="text-text-muted flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-full bg-bg-secondary flex items-center justify-center border border-border-subtle">
+                    <div className="w-16 h-16 rounded-full bg-bg-secondary flex items-center justify-center border border-white/5">
                       <ImageIcon size={24} className="text-text-secondary" />
                     </div>
-                    <span className="text-sm font-medium">Chưa có ảnh/video</span>
+                    <span className="text-xs font-medium">Chưa có ảnh/video</span>
                   </div>
                 )}
               </div>
               
               <div className="w-full max-w-md mx-auto">
                 {brief.imageUrl ? (
-                  <div className="bg-bg-tertiary p-4 rounded-xl border border-border-medium">
-                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2 flex items-center gap-1.5"><UploadCloud size={14}/> Link media public</label>
+                  <div className="bg-bg-tertiary/50 p-4 rounded-xl border border-white/5">
+                    <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2 flex items-center gap-1.5"><UploadCloud size={14}/> Link media public</label>
                     <div className="flex items-center gap-2">
-                      <input type="text" readOnly value={brief.imageUrl} className="flex-1 p-2.5 text-sm bg-bg-secondary border border-border-medium rounded-lg text-text-primary focus:outline-none focus:border-accent-primary transition-colors" />
-                      <button onClick={() => navigator.clipboard.writeText(brief.imageUrl || '')} className="p-2.5 bg-bg-secondary border border-border-medium rounded-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary/50 transition-colors" title="Copy link">
+                      <input type="text" readOnly value={brief.imageUrl} className="flex-1 p-2 text-xs bg-bg-secondary border border-white/5 rounded-lg text-text-primary focus:outline-none focus:border-accent-primary/50 transition-colors" />
+                      <button onClick={() => navigator.clipboard.writeText(brief.imageUrl || '')} className="p-2 bg-bg-secondary border border-white/5 rounded-lg text-text-secondary hover:text-accent-primary hover:border-accent-primary/50 transition-colors" title="Copy link">
                         <Download size={16} />
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm text-text-muted italic bg-bg-tertiary p-4 rounded-xl border border-border-medium flex items-center gap-3">
+                  <div className="text-xs text-text-muted italic bg-bg-tertiary/50 p-4 rounded-xl border border-white/5 flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-status-warning animate-pulse"></div>
                     Media sẽ xuất hiện ở đây sau khi tạo hoặc upload.
                   </div>
@@ -763,22 +768,22 @@ const PreviewPanel = ({
               className="h-full flex flex-col gap-4"
             >
               {brief.history.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-4 border border-dashed border-border-medium rounded-xl p-8">
-                  <div className="w-16 h-16 rounded-full bg-bg-tertiary flex items-center justify-center">
+                <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-4 border border-dashed border-white/10 rounded-xl p-8">
+                  <div className="w-16 h-16 rounded-full bg-bg-tertiary/50 flex items-center justify-center">
                     <History size={24} className="text-text-secondary" />
                   </div>
-                  <p className="text-sm">Chưa có lịch sử làm việc</p>
+                  <p className="text-xs">Chưa có lịch sử làm việc</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {brief.history.map((item) => (
-                    <div key={item.id} className="bg-bg-tertiary border border-border-medium rounded-xl p-4 space-y-3 hover:border-accent-primary/30 transition-all group">
+                    <div key={item.id} className="bg-bg-tertiary/50 border border-white/5 rounded-xl p-4 space-y-3 hover:border-accent-primary/30 transition-all group">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-text-muted uppercase bg-bg-secondary px-2 py-0.5 rounded border border-border-subtle">
+                          <span className="text-[9px] font-bold text-text-muted uppercase bg-bg-secondary px-2 py-0.5 rounded border border-white/5">
                             {new Date(item.timestamp).toLocaleString('vi-VN')}
                           </span>
-                          <span className="text-xs font-medium text-accent-primary">{item.statusDetail}</span>
+                          <span className="text-[10px] font-medium text-accent-primary">{item.statusDetail}</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -791,14 +796,14 @@ const PreviewPanel = ({
                             });
                             addLog(`Đã khôi phục phiên bản từ ${new Date(item.timestamp).toLocaleString('vi-VN')}`, 'success');
                           }}
-                          className="text-xs text-accent-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-[10px] text-accent-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           Khôi phục
                         </button>
                       </div>
-                      <p className="text-sm text-text-primary line-clamp-3 italic">"{item.content}"</p>
+                      <p className="text-xs text-text-primary line-clamp-3 italic">"{item.content}"</p>
                       {item.imageUrl && (
-                        <img src={item.imageUrl} className="w-20 h-20 object-cover rounded-lg border border-border-subtle" alt="History" />
+                        <img src={item.imageUrl} className="w-20 h-20 object-cover rounded-lg border border-white/5" alt="History" />
                       )}
                     </div>
                   ))}
@@ -1835,7 +1840,7 @@ ${toneInstruction}
     }
   };
 
-  const generateImage = async () => {
+  const generateImage = async (isForced = true) => {
     if (selectedIds.size === 0) return;
     
     const missingConfigs = [];
@@ -1864,6 +1869,14 @@ ${toneInstruction}
         if (stopProcessingRef.current) {
           addLog('Đã dừng quá trình tạo Media.', 'info');
           break;
+        }
+
+        // Check if already has image and not forced
+        if (!isForced && brief.imageBase64) {
+          addLog(`Bỏ qua dòng ${brief.rowIndex} vì đã có ảnh AI.`, 'info');
+          count++;
+          setProgress(p => ({ ...p, current: count }));
+          continue;
         }
 
         // Check for pause
@@ -2091,13 +2104,25 @@ YÊU CẦU PROMPT:
     }
     
     setIsProcessing(true);
+    setIsPaused(false);
+    stopProcessingRef.current = false;
     setProgress({ current: 0, total: selectedIds.size, task: 'Upload Ảnh' });
     let count = 0;
     
-    for (const id of selectedIds) {
-      const brief = briefs.find(b => b.id === id);
-      if (!brief) continue;
+    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+
+    for (const brief of selectedBriefs) {
+      if (stopProcessingRef.current) break;
+      
+      // Check for pause
+      while (isPaused) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (stopProcessingRef.current) break;
+      }
+      if (stopProcessingRef.current) break;
+
       if (!brief.imageBase64) {
+        addLog(`Bỏ qua dòng ${brief.rowIndex} vì chưa có dữ liệu ảnh AI.`, 'info');
         count++;
         setProgress(p => ({ ...p, current: count }));
         continue;
@@ -2128,29 +2153,140 @@ YÊU CẦU PROMPT:
             retries++;
             if (retries > maxRetries) throw apiErr;
             addLog(`Lỗi upload dòng ${brief.rowIndex}, thử lại lần ${retries}...`, 'info');
-            await new Promise(resolve => setTimeout(resolve, 2000 * retries));
+            await new Promise(resolve => setTimeout(resolve, 3000 * retries));
           }
         }
 
         if (data.success) {
-          setBriefs(prev => prev.map(b => b.id === id ? { ...b, imageUrl: data.data.url, status: 'uploaded' } : b));
+          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageUrl: data.data.url, status: 'uploaded', statusDetail: 'Đã Upload' } : b));
           addLog(`Upload thành công dòng ${brief.rowIndex}: ${data.data.url}`, 'success');
         }
       } catch (err: any) {
         addLog(`Lỗi upload dòng ${brief.rowIndex}: ${err.message}`, 'error');
+        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
       }
       
       count++;
       setProgress(p => ({ ...p, current: count }));
 
       // Thêm khoảng nghỉ ngắn giữa các dòng để tránh rate limit
-      if (count < selectedIds.size) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (count < selectedBriefs.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
     setIsProcessing(false);
   };
+
+  const processMediaCombined = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const missingConfigs = [];
+    if (!config.GEMINI_API_KEY) missingConfigs.push("Gemini API Key");
+    if (!config.IMGBB_API_KEY) missingConfigs.push("ImgBB API Key");
+    if (!config.COL_IMAGE) missingConfigs.push("Cột Link Ảnh (Đầu ra)");
+
+    if (missingConfigs.length > 0) {
+      addLog(`Thiếu cấu hình: ${missingConfigs.join(", ")}.`, 'error');
+      setShowConfig(true);
+      return;
+    }
+    
+    setIsProcessing(true);
+    setIsPaused(false);
+    stopProcessingRef.current = false;
+    setProgress({ current: 0, total: selectedIds.size, task: 'Tạo & Upload Media' });
+    
+    const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
+    let count = 0;
+    
+    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+
+    try {
+      for (const brief of selectedBriefs) {
+        if (stopProcessingRef.current) break;
+        
+        while (isPaused) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (stopProcessingRef.current) break;
+        }
+        if (stopProcessingRef.current) break;
+
+        try {
+          let currentImageUrl = brief.imageUrl;
+          let currentBase64 = brief.imageBase64;
+
+          // 1. Generate if needed
+          if (!currentBase64 && brief.mediaFormat !== 'Video') {
+            addLog(`[1/2] Đang tạo ảnh AI cho dòng ${brief.rowIndex}...`, 'info');
+            
+            // Generate prompt
+            const promptResponse = await ai.models.generateContent({
+              model: 'gemini-3-flash-preview',
+              contents: `Tạo PROMPT tiếng Anh chi tiết để AI tạo ảnh marketing cho brief: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}. Tỉ lệ: ${brief.mediaSize || '1:1'}.`
+            });
+            const imagePrompt = promptResponse.text || 'A beautiful marketing image';
+
+            // Generate image
+            const imageResponse = await ai.models.generateContent({
+              model: 'gemini-3.1-flash-image-preview',
+              contents: { parts: [{ text: imagePrompt }] },
+              config: {
+                imageConfig: {
+                  aspectRatio: (brief.mediaSize || "1:1") as any,
+                  imageSize: "1K"
+                }
+              }
+            });
+            
+            currentBase64 = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            if (!currentBase64) throw new Error("Không tạo được ảnh AI.");
+            
+            // Update state with base64
+            setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageBase64: currentBase64, status: 'image_generated' } : b));
+          }
+
+          // 2. Upload if we have base64
+          if (currentBase64 && brief.mediaFormat !== 'Video') {
+            addLog(`[2/2] Đang upload ảnh cho dòng ${brief.rowIndex}...`, 'info');
+            const formData = new FormData();
+            formData.append('image', currentBase64);
+            
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${config.IMGBB_API_KEY}`, {
+              method: 'POST',
+              body: formData
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+              currentImageUrl = data.data.url;
+              setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageUrl: currentImageUrl, status: 'uploaded', statusDetail: 'Đã tạo & Upload' } : b));
+              addLog(`Dòng ${brief.rowIndex}: Hoàn thành tạo & upload.`, 'success');
+            } else {
+              throw new Error(data.error?.message || "Upload thất bại.");
+            }
+          } else if (brief.mediaFormat === 'Video') {
+            addLog(`Đang xử lý Video cho dòng ${brief.rowIndex}...`, 'info');
+            // Re-use video logic if needed, but for now focus on images as requested
+            await generateImage(true); 
+          }
+
+          if (count < selectedBriefs.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (err: any) {
+          addLog(`Lỗi dòng ${brief.rowIndex}: ${err.message}`, 'error');
+          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+        } finally {
+          count++;
+          setProgress(p => ({ ...p, current: count }));
+        }
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
 
   const saveToSheet = async () => {
     if (selectedIds.size === 0) return;
@@ -2333,6 +2469,13 @@ YÊU CẦU PROMPT:
 
   return (
     <div className="h-screen w-screen bg-bg-primary flex overflow-hidden font-sans text-text-primary selection:bg-accent-primary/30 selection:text-accent-primary">
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-accent-primary/10 blur-[160px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-accent-secondary/10 blur-[160px] rounded-full animate-pulse" style={{ animationDelay: '3s' }} />
+        <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-indigo-500/5 blur-[120px] rounded-full" />
+      </div>
+
       {/* Loading Overlay */}
       <AnimatePresence>
         {isConfigLoading && (
@@ -2351,66 +2494,71 @@ YÊU CẦU PROMPT:
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: isSidebarCollapsed ? 68 : 260 }}
-        className="shrink-0 border-r border-border-subtle bg-bg-secondary flex flex-col z-20 relative transition-all duration-300"
+        animate={{ width: isSidebarCollapsed ? 72 : 260 }}
+        className="glass-panel shrink-0 h-screen flex flex-col z-30 relative transition-all duration-500 ease-in-out border-r border-white/5"
       >
-        <div className="h-16 flex items-center px-4 border-b border-border-subtle shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center font-bold text-lg text-white shadow-[0_0_15px_rgba(108,92,231,0.4)] shrink-0">C</div>
+        <div className="h-16 flex items-center px-5 border-b border-white/5 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-accent-primary/40 shrink-0 transform hover:rotate-12 transition-transform duration-300">
+            <LayoutPanelLeft size={18} />
+          </div>
           {!isSidebarCollapsed && (
-            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ml-3 font-display font-bold text-lg tracking-wide whitespace-nowrap">Content Pro</motion.span>
+            <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col">
+              <span className="font-display font-bold text-lg tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">AI STUDIO</span>
+              <span className="text-[9px] font-bold text-accent-primary uppercase tracking-[0.2em] mt-1">Neural Engine v2</span>
+            </motion.div>
           )}
         </div>
 
         <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
           {/* Menu Items */}
           <div className="space-y-1">
-            <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
-              <Settings size={18} className="shrink-0" />
+            <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <Settings size={14} className="shrink-0" />
               {!isSidebarCollapsed && <span>Cấu Hình Hệ Thống</span>}
             </button>
-            <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
-              <Terminal size={18} className="shrink-0" />
+            <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <Terminal size={14} className="shrink-0" />
               {!isSidebarCollapsed && <span>Hệ Thống Logs</span>}
             </button>
-            <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
-              <BookOpen size={18} className="shrink-0" />
+            <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <BookOpen size={14} className="shrink-0" />
               {!isSidebarCollapsed && <span>Tài Liệu Hướng Dẫn</span>}
             </button>
-            <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'}`}>
-              <Info size={18} className="shrink-0" />
+            <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <Info size={14} className="shrink-0" />
               {!isSidebarCollapsed && <span>Mô Tả Thành Phần</span>}
             </button>
           </div>
 
           {/* Column Config */}
           {!isSidebarCollapsed && (
-            <div className="space-y-4 pt-4 border-t border-border-subtle">
+            <div className="space-y-4 pt-4 border-t border-white/5">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Cấu Hình Cột</h3>
+                <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Cấu Hình Cột</h3>
                 <button 
                   onClick={fetchHeaders} 
                   disabled={isFetchingHeaders}
-                  className="text-text-muted hover:text-accent-primary transition-colors p-1 rounded-md hover:bg-bg-tertiary"
+                  className="text-text-muted hover:text-accent-primary transition-colors p-1 rounded-md hover:bg-bg-tertiary/50"
                   title="Làm mới danh sách cột"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isFetchingHeaders ? "animate-spin" : ""}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isFetchingHeaders ? "animate-spin" : ""}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                 </button>
               </div>
               <div className="space-y-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Cột Brief (Đầu Vào)</label>
+                  <label className="text-[10px] font-medium text-text-secondary">Cột Brief (Đầu Vào)</label>
                   <MultiSelectDropdown options={availableHeaders} selected={config.COL_BRIEFS || []} onChange={(val: string[]) => setConfig({...config, COL_BRIEFS: val})} label="Chọn Cột..." icon={FileText} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Giọng Điệu Content</label>
+                  <label className="text-[10px] font-medium text-text-secondary">Giọng Điệu Content</label>
                   <SingleSelectDropdown options={availableHeaders} selected={config.COL_TONE || ''} onChange={(val: string) => setConfig({...config, COL_TONE: val})} label="Chọn Cột..." icon={MessageSquare} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Cột Content (Đầu Ra)</label>
+                  <label className="text-[10px] font-medium text-text-secondary">Cột Content (Đầu Ra)</label>
                   <SingleSelectDropdown options={availableHeaders} selected={config.COL_CONTENT} onChange={(val: string) => setConfig({...config, COL_CONTENT: val})} label="Chọn Cột..." icon={Edit3} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary">Cột Link Ảnh (Đầu Ra)</label>
+                  <label className="text-[10px] font-medium text-text-secondary">Cột Link Ảnh (Đầu Ra)</label>
                   <SingleSelectDropdown options={availableHeaders} selected={config.COL_IMAGE} onChange={(val: string) => setConfig({...config, COL_IMAGE: val})} label="Chọn Cột..." icon={ImageIcon} />
                 </div>
               </div>
@@ -2419,11 +2567,11 @@ YÊU CẦU PROMPT:
         </div>
 
         {/* User / Connection Status */}
-        <div className="p-4 border-t border-border-subtle shrink-0">
+        <div className="p-4 border-t border-white/5 shrink-0">
           {user ? (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-bg-tertiary border border-border-medium flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-bg-tertiary/50 border border-white/5 flex items-center justify-center shrink-0 overflow-hidden">
                   {user.photoURL ? (
                     <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -2432,7 +2580,7 @@ YÊU CẦU PROMPT:
                 </div>
                 {!isSidebarCollapsed && (
                   <div className="flex flex-col overflow-hidden">
-                    <span className="text-xs font-medium text-text-primary truncate">{user.displayName || user.email}</span>
+                    <span className="text-sm font-medium text-text-primary truncate">{user.displayName || user.email}</span>
                     <span className="text-[10px] text-text-muted">{accessToken ? 'Đã kết nối Google' : 'Chưa kết nối Google Sheet'}</span>
                   </div>
                 )}
@@ -2441,7 +2589,7 @@ YÊU CẦU PROMPT:
               {!accessToken && !isSidebarCollapsed && (
                 <button 
                   onClick={handleLogin} 
-                  className="w-full flex items-center justify-center gap-2 py-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/20 rounded-lg text-xs font-medium hover:bg-accent-primary/20 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2 bg-accent-primary/10 text-accent-primary border border-accent-primary/20 rounded-lg text-[11px] font-medium hover:bg-accent-primary/20 transition-colors"
                 >
                   <Layers size={14} /> Kết Nối Google Sheet
                 </button>
@@ -2450,14 +2598,14 @@ YÊU CẦU PROMPT:
               {!isSidebarCollapsed && (
                 <button 
                   onClick={handleLogout} 
-                  className="w-full flex items-center justify-center gap-2 py-1.5 text-text-muted hover:text-status-danger transition-colors text-[10px] font-medium uppercase tracking-wider"
+                  className="w-full flex items-center justify-center gap-2 py-1.5 text-text-muted hover:text-status-danger transition-colors text-[9px] font-medium uppercase tracking-wider"
                 >
                   <LogOut size={12} /> Đăng xuất
                 </button>
               )}
             </div>
           ) : (
-            <button onClick={handleLogin} className="w-full flex items-center justify-center gap-2 p-2 bg-bg-tertiary hover:bg-border-subtle border border-border-medium rounded-lg text-sm font-medium transition-colors">
+            <button onClick={handleLogin} className="w-full flex items-center justify-center gap-2 p-2 bg-bg-tertiary/50 hover:bg-white/5 border border-white/5 rounded-lg text-xs font-medium transition-colors">
               <LogIn size={16} />
               {!isSidebarCollapsed && <span>Đăng nhập</span>}
             </button>
@@ -2467,7 +2615,7 @@ YÊU CẦU PROMPT:
         {/* Collapse Toggle */}
         <button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-bg-tertiary border border-border-medium rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:border-accent-primary transition-colors z-30 shadow-sm"
+          className="absolute -right-3 top-20 w-6 h-6 bg-bg-tertiary/50 border border-white/5 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:border-accent-primary/50 transition-colors z-30 shadow-sm"
         >
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -2476,15 +2624,18 @@ YÊU CẦU PROMPT:
       {/* Main Content Wrapper */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-16 border-b border-border-subtle bg-bg-primary flex items-center justify-between px-6 shrink-0 relative z-10">
-          <div className="flex items-center gap-4">
-            <h2 className="font-display font-bold text-lg tracking-tight">Dashboard</h2>
+        <header className="glass-panel sticky top-0 z-20 h-16 flex items-center justify-between px-6 border-b border-white/5">
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+              <h2 className="text-xl font-bold text-text-primary tracking-tight">Dashboard</h2>
+              <p className="text-[9px] text-text-muted font-bold uppercase tracking-[0.1em] mt-0.5">AI Marketing Content Engine</p>
+            </div>
             
-            <div className="h-6 w-px bg-border-medium mx-2"></div>
+            <div className="h-8 w-px bg-white/5 mx-1"></div>
             <div className="flex items-center gap-3">
               {/* Spreadsheet Selection */}
-              <div className="flex items-center gap-2 bg-bg-secondary rounded-lg px-3 py-1.5 border border-border-subtle">
-                <span className="text-xs text-text-muted font-medium uppercase tracking-wider">File:</span>
+              <div className="flex items-center gap-2 bg-bg-tertiary/50 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/5 shadow-sm hover:border-accent-primary/40 transition-all group">
+                <span className="text-[10px] text-accent-primary font-bold uppercase tracking-widest">File:</span>
                 <div className="relative">
                   <select 
                     value={config.GOOGLE_SHEET_ID} 
@@ -2502,22 +2653,22 @@ YÊU CẦU PROMPT:
                         }
                       }
                     }}
-                    className="bg-transparent text-sm text-text-primary outline-none cursor-pointer appearance-none pr-5 font-medium hover:text-accent-primary transition-colors max-w-[180px] truncate disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent text-[11px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors max-w-[180px] truncate disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value="" className="bg-bg-secondary text-text-primary">
+                    <option value="" className="bg-bg-tertiary text-text-primary">
                       {!accessToken ? "-- Chưa đăng nhập --" : "-- Chọn File --"}
                     </option>
                     {availableSpreadsheets.map(ss => (
-                      <option key={ss.id} value={ss.id} className="bg-bg-secondary text-text-primary">{ss.name}</option>
+                      <option key={ss.id} value={ss.id} className="bg-bg-tertiary text-text-primary">{ss.name}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-0 top-1 text-text-muted pointer-events-none" size={14} />
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover:text-accent-primary transition-colors" size={12} />
                 </div>
               </div>
 
               {/* Tab Selection */}
-              <div className="flex items-center gap-2 bg-bg-secondary rounded-lg px-3 py-1.5 border border-border-subtle">
-                <span className="text-xs text-text-muted font-medium uppercase tracking-wider">Sheet:</span>
+              <div className="flex items-center gap-2 bg-bg-tertiary/50 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/5 shadow-sm hover:border-accent-primary/40 transition-all group">
+                <span className="text-[10px] text-accent-primary font-bold uppercase tracking-widest">Sheet:</span>
                 <div className="relative">
                   <select 
                     value={config.SHEET_GID} 
@@ -2534,16 +2685,16 @@ YÊU CẦU PROMPT:
                         }
                       }
                     }}
-                    className="bg-transparent text-sm text-text-primary outline-none cursor-pointer appearance-none pr-5 font-medium hover:text-accent-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent text-[11px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <option value="" className="bg-bg-secondary text-text-primary">
+                    <option value="" className="bg-bg-tertiary text-text-primary">
                       {!config.GOOGLE_SHEET_ID ? "-- Trống --" : "-- Chọn Tab --"}
                     </option>
                     {availableTabs.map(tab => (
-                      <option key={tab.id} value={tab.id} className="bg-bg-secondary text-text-primary">{tab.title}</option>
+                      <option key={tab.id} value={tab.id} className="bg-bg-tertiary text-text-primary">{tab.title}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-0 top-1 text-text-muted pointer-events-none" size={14} />
+                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover:text-accent-primary transition-colors" size={12} />
                 </div>
               </div>
             </div>
@@ -2570,21 +2721,21 @@ YÊU CẦU PROMPT:
           {/* Table Area */}
           <div className={`flex flex-col h-full border-r border-border-subtle transition-all duration-300 ${activeBriefId && isPreviewExpanded ? 'w-0 opacity-0 overflow-hidden' : activeBriefId ? 'w-[60%]' : 'w-full'}`}>
             {/* Action Bar */}
-            <div className="px-6 py-4 border-b border-border-subtle bg-bg-primary flex flex-wrap items-center justify-between gap-4 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 bg-bg-tertiary px-3 py-1.5 rounded-lg border border-border-subtle shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-accent-primary animate-pulse"></span>
-                  <span className="text-sm font-medium text-text-secondary">
-                    Đã chọn: <span className="text-text-primary font-bold">{selectedIds.size}</span>
+            <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-bg-tertiary/50 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
+                  <div className="w-2 h-2 rounded-full bg-accent-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]"></div>
+                  <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
+                    Đã chọn: <span className="text-accent-primary font-black ml-1">{selectedIds.size}</span>
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1 bg-bg-tertiary p-1 rounded-lg border border-border-subtle ml-2">
+                <div className="flex items-center gap-1 bg-bg-tertiary/50 p-1 rounded-xl border border-white/5 shadow-inner">
                   {[
-                    { id: 'all', label: 'Tất Cả Brief' },
-                    { id: 'done', label: 'Brief Đã Làm' },
-                    { id: 'pending', label: 'Brief Chưa Làm' },
-                    { id: 'incomplete', label: 'Brief Cần Hoàn Thiện' }
+                    { id: 'all', label: 'Tất Cả' },
+                    { id: 'done', label: 'Đã Làm' },
+                    { id: 'pending', label: 'Chưa Làm' },
+                    { id: 'incomplete', label: 'Cần Hoàn Thiện' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -2601,11 +2752,7 @@ YÊU CẦU PROMPT:
                           }
                         }
                       }}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                        filterTab === tab.id 
-                          ? 'bg-accent-primary text-white shadow-sm' 
-                          : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === tab.id ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-muted hover:text-text-primary hover:bg-white/5'}`}
                     >
                       {tab.label}
                     </button>
@@ -2613,34 +2760,43 @@ YÊU CẦU PROMPT:
                 </div>
 
                 {selectedIds.size > 0 && (
-                  <button onClick={() => setSelectedIds(new Set())} className="text-xs text-text-muted hover:text-status-danger transition-colors font-medium">
+                  <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-text-muted hover:text-status-danger transition-colors font-medium">
                     Bỏ chọn
                   </button>
                 )}
               </div>
-              <div className="flex items-center bg-bg-tertiary p-1 rounded-xl border border-border-subtle shadow-sm">
+              <div className="flex items-center bg-bg-tertiary/50 p-1 rounded-xl border border-white/5 shadow-inner">
                 <button 
                   onClick={generateContent} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-bg-secondary hover:text-accent-primary hover:shadow-sm text-text-primary"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group"
                 >
-                  <Edit3 size={16}/> Tạo Content
+                  <Edit3 size={12} className="text-accent-primary group-hover:scale-110 transition-transform"/> Tạo Content
                 </button>
-                <div className="w-px h-4 bg-border-medium mx-1"></div>
+                <div className="w-px h-4 bg-white/5 mx-1"></div>
                 <button 
-                  onClick={generateImage} 
+                  onClick={() => generateImage(true)} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-bg-secondary hover:text-accent-primary hover:shadow-sm text-text-primary"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group"
                 >
-                  <ImageIcon size={16}/> Tạo Ảnh AI
+                  <ImageIcon size={12} className="text-accent-primary group-hover:scale-110 transition-transform"/> Tạo Ảnh AI
                 </button>
-                <div className="w-px h-4 bg-border-medium mx-1"></div>
+                <div className="w-px h-4 bg-white/5 mx-1"></div>
                 <button 
                   onClick={uploadImages} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-bg-secondary hover:text-accent-primary hover:shadow-sm text-text-primary"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group"
                 >
-                  <UploadCloud size={16}/> Upload Ảnh
+                  <UploadCloud size={12} className="text-accent-primary group-hover:scale-110 transition-transform"/> Upload Ảnh
+                </button>
+                <div className="w-px h-4 bg-white/5 mx-1"></div>
+                <button 
+                  onClick={processMediaCombined} 
+                  disabled={isProcessing || selectedIds.size === 0} 
+                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group"
+                  title="Tạo ảnh AI và Upload lên ImgBB trong 1 bước"
+                >
+                  <Zap size={12} className="text-accent-primary group-hover:scale-110 transition-transform"/> Tạo & Lấy link Ảnh
                 </button>
               </div>
             </div>
@@ -2652,56 +2808,62 @@ YÊU CẦU PROMPT:
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-4 py-3 bg-accent-primary/5 border-b border-accent-primary/20 overflow-hidden shrink-0"
+                  className="px-6 py-3 bg-accent-primary/[0.03] border-b border-accent-primary/10 overflow-hidden shrink-0"
                 >
-                  <div className="flex justify-between items-center text-xs font-bold text-accent-primary mb-2 uppercase tracking-wider">
-                    <span>{progress.task} ({progress.current}/{progress.total})</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-ping" />
+                      <span className="text-[9px] font-bold text-accent-primary uppercase tracking-[0.2em]">{progress.task}</span>
+                      <span className="text-[8px] font-bold text-text-muted px-1.5 py-0.5 bg-bg-tertiary rounded-md">{progress.current}/{progress.total}</span>
+                    </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 bg-accent-primary/10 rounded-lg px-2 py-1">
+                      <div className="flex items-center gap-2 bg-bg-tertiary/50 shadow-sm border border-white/5 rounded-lg px-2 py-1">
                         <button 
                           onClick={() => setIsPaused(!isPaused)}
-                          className="hover:text-white transition-colors flex items-center gap-1"
+                          className="text-accent-primary hover:scale-110 transition-all flex items-center gap-1.5 font-bold text-[8px] tracking-wider"
                           title={isPaused ? "Tiếp tục" : "Tạm dừng"}
                         >
-                          {isPaused ? <Play size={12} fill="currentColor" /> : <div className="flex gap-0.5"><div className="w-0.5 h-3 bg-current"></div><div className="w-0.5 h-3 bg-current"></div></div>}
+                          {isPaused ? <Play size={12} fill="currentColor" /> : <div className="flex gap-0.5"><div className="w-0.5 h-3 bg-current rounded-full"></div><div className="w-0.5 h-3 bg-current rounded-full"></div></div>}
                           <span>{isPaused ? "TIẾP TỤC" : "TẠM DỪNG"}</span>
                         </button>
-                        <div className="w-px h-3 bg-accent-primary/20 mx-1"></div>
+                        <div className="w-px h-3 bg-white/10"></div>
                         <button 
                           onClick={() => {
                             stopProcessingRef.current = true;
                             setIsPaused(false);
                           }}
-                          className="hover:text-status-danger transition-colors flex items-center gap-1"
+                          className="text-status-danger hover:scale-110 transition-all flex items-center gap-1.5 font-bold text-[8px] tracking-wider"
                           title="Dừng hẳn"
                         >
                           <XCircle size={12} />
                           <span>DỪNG</span>
                         </button>
                       </div>
-                      <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                      <span className="text-xs font-black text-accent-primary tabular-nums">{Math.round((progress.current / progress.total) * 100)}%</span>
                     </div>
                   </div>
-                  <div className="w-full bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
+                  <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden border border-white/5 p-0.5 shadow-inner">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${(progress.current / progress.total) * 100}%` }}
-                      className="bg-gradient-to-r from-accent-primary to-accent-secondary h-full rounded-full shadow-[0_0_10px_rgba(108,92,231,0.5)]"
-                    ></motion.div>
+                      className="h-full bg-gradient-to-r from-accent-primary to-accent-secondary rounded-full relative"
+                    >
+                      <div className="absolute inset-0 shimmer opacity-40" />
+                    </motion.div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Table */}
-            <div className="flex-1 overflow-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+            <div className="flex-1 overflow-auto px-6 pb-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <div className="h-2 shrink-0"></div>
-              <table className="w-full text-sm text-left border-separate border-spacing-y-2">
-                <thead className="text-xs text-text-muted uppercase tracking-wider sticky top-0 z-20 bg-bg-primary">
+              <table className="w-full text-xs text-left border-separate border-spacing-y-2">
+                <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-20 bg-bg-primary/90 backdrop-blur-md border-b border-white/5">
                   <tr>
-                    <th className="p-3 w-12 text-center bg-bg-primary">
+                    <th className="p-2.5 w-12 text-center">
                       <input type="checkbox" 
-                        className="w-4 h-4 rounded border-border-medium bg-bg-tertiary text-accent-primary focus:ring-accent-primary/50 focus:ring-offset-bg-primary transition-colors cursor-pointer"
+                        className="w-4 h-4 rounded border-white/10 bg-bg-tertiary text-accent-primary focus:ring-accent-primary/30 transition-all cursor-pointer shadow-inner"
                         checked={filteredBriefs.length > 0 && Array.from(selectedIds).filter(id => filteredBriefs.some(b => b.id === id)).length === filteredBriefs.length}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -2716,122 +2878,135 @@ YÊU CẦU PROMPT:
                         }}
                       />
                     </th>
-                    <th className="p-3 w-16 font-semibold bg-bg-primary">Dòng</th>
-                    <th className="p-3 font-semibold bg-bg-primary">Tóm tắt Brief</th>
-                    <th className="p-3 w-[30%] font-semibold bg-bg-primary">Mô tả Media</th>
-                    <th className="p-3 w-32 font-semibold bg-bg-primary">Định dạng</th>
-                    <th className="p-3 w-48 font-semibold bg-bg-primary">Tham chiếu</th>
-                    <th className="p-3 w-40 font-semibold bg-bg-primary">Trạng thái</th>
+                    <th className="p-2.5 w-16">Dòng</th>
+                    <th className="p-2.5">Tóm tắt Brief</th>
+                    <th className="p-2.5 w-[20%]">Mô tả Media</th>
+                    <th className="p-2.5 w-32">Định dạng</th>
+                    <th className="p-2.5 w-40">Tham chiếu</th>
+                    <th className="p-2.5 w-40 text-right pr-6">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
                   <AnimatePresence>
-                    {filteredBriefs.map(brief => (
-                      <motion.tr 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          key={brief.id} 
-                          className={`group cursor-pointer transition-all duration-200 ${activeBriefId === brief.id ? 'bg-bg-tertiary shadow-sm' : 'bg-bg-secondary hover:bg-bg-tertiary/50'} rounded-xl`}
-                          onClick={() => setActiveBriefId(brief.id)}>
-                        <td className="p-3 text-center rounded-l-xl border-y border-l border-border-subtle group-hover:border-border-medium transition-colors" onClick={e => e.stopPropagation()}>
-                          <input type="checkbox" 
-                            className="w-4 h-4 rounded border-border-medium bg-bg-tertiary text-accent-primary focus:ring-accent-primary/50 focus:ring-offset-bg-primary transition-colors cursor-pointer"
-                            checked={selectedIds.has(brief.id)}
-                            onChange={(e) => {
-                              const newSet = new Set(selectedIds);
-                              if (e.target.checked) newSet.add(brief.id);
-                              else newSet.delete(brief.id);
-                              setSelectedIds(newSet);
-                            }}
-                          />
-                        </td>
-                        <td className="p-3 font-mono text-text-muted text-xs border-y border-border-subtle group-hover:border-border-medium transition-colors">
-                          <div className="w-8 h-8 rounded-lg bg-bg-primary border border-border-subtle flex items-center justify-center">
-                            {brief.rowIndex}
-                          </div>
-                        </td>
-                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
-                          <div className="font-medium text-text-primary line-clamp-1 mb-1">
-                            {config.COL_BRIEFS.length > 0 ? brief.briefData[config.COL_BRIEFS[0]] || <span className="text-text-muted italic">Trống</span> : <span className="text-text-muted italic">Trống</span>}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-text-secondary line-clamp-1">
-                            {config.COL_BRIEFS.length > 1 && brief.briefData[config.COL_BRIEFS[1]] && (
-                              <span className="truncate">{brief.briefData[config.COL_BRIEFS[1]]}</span>
-                            )}
-                            {config.COL_TONE && brief.tone && (
-                              <span className="flex items-center gap-1 bg-accent-primary/10 text-accent-primary px-1.5 py-0.5 rounded border border-accent-primary/20 shrink-0">
-                                <MessageSquare size={10} /> {brief.tone}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
+                    {filteredBriefs.map(brief => {
+                      const isProcessingThis = isProcessing && selectedIds.has(brief.id);
+                      return (
+                        <motion.tr 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            key={brief.id} 
+                            className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''}`}
+                            onClick={() => setActiveBriefId(brief.id)}>
+                          
+                          {isProcessingThis && (
+                            <div className="absolute inset-0 shimmer opacity-10 pointer-events-none z-0" />
+                          )}
+
+                          <td className="p-2.5 text-center rounded-l-xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
+                            <input type="checkbox" 
+                              className="custom-checkbox"
+                              checked={selectedIds.has(brief.id)}
+                              onChange={(e) => {
+                                const newSet = new Set(selectedIds);
+                                if (e.target.checked) newSet.add(brief.id);
+                                else newSet.delete(brief.id);
+                                setSelectedIds(newSet);
+                              }}
+                            />
+                          </td>
+                          <td className="p-2.5 font-mono text-text-muted text-xs border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                            <div className="w-8 h-8 rounded-lg bg-bg-tertiary border border-white/5 flex items-center justify-center font-bold text-text-secondary group-hover:bg-white/5 group-hover:border-accent-primary/40 group-hover:text-accent-primary transition-all shadow-inner">
+                              {brief.rowIndex}
+                            </div>
+                          </td>
+                          <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                            <div className="font-bold text-text-primary text-xs line-clamp-2 mb-1.5 group-hover:text-accent-primary transition-colors">
+                              {config.COL_BRIEFS.length > 0 ? brief.briefData[config.COL_BRIEFS[0]] || <span className="text-text-muted/40 italic font-normal">Trống</span> : <span className="text-text-muted/40 italic font-normal">Trống</span>}
+                            </div>
+                            <div className="flex items-center gap-3 text-[11px] text-text-secondary line-clamp-1">
+                              {config.COL_TONE && brief.tone && (
+                                <span className="flex items-center gap-1.5 bg-accent-primary/10 text-accent-primary px-2 py-0.5 rounded-md border border-accent-primary/20 shrink-0 font-bold uppercase tracking-widest">
+                                  <MessageSquare size={8} className="fill-current" /> {brief.tone}
+                                </span>
+                              )}
+                              {config.COL_BRIEFS.length > 1 && brief.briefData[config.COL_BRIEFS[1]] && (
+                                <span className="truncate font-medium opacity-60">{brief.briefData[config.COL_BRIEFS[1]]}</span>
+                              )}
+                            </div>
+                          </td>
+                        <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                           <textarea 
-                            className="w-full bg-transparent border-none focus:ring-0 text-xs text-text-primary italic resize-none p-0 min-h-[60px] scrollbar-none"
+                            className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-3 py-2 text-[11px] text-text-primary font-medium resize-none min-h-[60px] scrollbar-none focus:ring-1 focus:ring-accent-primary/30 focus:border-accent-primary/40 transition-all"
                             value={brief.briefMedia || ''}
                             onChange={(e) => updateBriefField(brief.id, 'briefMedia', e.target.value)}
                             placeholder="Nhập mô tả media..."
                             onClick={e => e.stopPropagation()}
                           />
                         </td>
-                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
+                        <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                           <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-                            <select 
-                              className="bg-bg-tertiary border border-border-subtle rounded px-1.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-primary focus:ring-1 focus:ring-accent-primary outline-none cursor-pointer"
-                              value={brief.mediaFormat || 'Ảnh'}
-                              onChange={(e) => updateBriefField(brief.id, 'mediaFormat', e.target.value as any)}
-                            >
-                              <option value="Ảnh">Ảnh</option>
-                              <option value="Video">Video</option>
-                            </select>
-                            <select 
-                              className="bg-bg-tertiary border border-border-subtle rounded px-1.5 py-1 text-[10px] text-text-muted focus:ring-1 focus:ring-accent-primary outline-none cursor-pointer"
-                              value={brief.mediaSize || '1:1'}
-                              onChange={(e) => updateBriefField(brief.id, 'mediaSize', e.target.value)}
-                            >
-                              {brief.mediaFormat === 'Video' ? (
-                                <>
-                                  <option value="9:16">9:16 (Dọc)</option>
-                                  <option value="16:9">16:9 (Ngang)</option>
-                                </>
-                              ) : (
-                                <>
-                                  <option value="1:1">1:1 (Vuông)</option>
-                                  <option value="4:3">4:3</option>
-                                  <option value="3:4">3:4</option>
-                                  <option value="16:9">16:9</option>
-                                  <option value="9:16">9:16</option>
-                                </>
-                              )}
-                            </select>
+                            <div className="relative group/select">
+                              <select 
+                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none cursor-pointer appearance-none shadow-inner"
+                                value={brief.mediaFormat || 'Ảnh'}
+                                onChange={(e) => updateBriefField(brief.id, 'mediaFormat', e.target.value as any)}
+                              >
+                                <option value="Ảnh">Ảnh</option>
+                                <option value="Video">Video</option>
+                              </select>
+                              <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover/select:text-accent-primary transition-colors" />
+                            </div>
+                            <div className="relative group/select">
+                              <select 
+                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-2 py-1.5 text-[9px] font-medium text-text-muted focus:ring-1 focus:ring-accent-primary/30 outline-none cursor-pointer appearance-none shadow-inner"
+                                value={brief.mediaSize || '1:1'}
+                                onChange={(e) => updateBriefField(brief.id, 'mediaSize', e.target.value)}
+                              >
+                                {brief.mediaFormat === 'Video' ? (
+                                  <>
+                                    <option value="9:16">9:16 (Dọc)</option>
+                                    <option value="16:9">16:9 (Ngang)</option>
+                                  </>
+                                ) : (
+                                  <>
+                                    <option value="1:1">1:1 (Vuông)</option>
+                                    <option value="4:3">4:3</option>
+                                    <option value="3:4">3:4</option>
+                                    <option value="16:9">16:9</option>
+                                    <option value="9:16">9:16</option>
+                                  </>
+                                )}
+                              </select>
+                              <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover/select:text-accent-primary transition-colors" />
+                            </div>
                           </div>
                         </td>
-                        <td className="p-3 border-y border-border-subtle group-hover:border-border-medium transition-colors">
+                        <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                           <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                             <div className="relative group/ref">
                               <input 
                                 type="text"
-                                className="w-full bg-bg-tertiary border border-border-subtle rounded px-2 py-1.5 text-[10px] text-text-primary focus:ring-1 focus:ring-accent-primary outline-none pr-6"
+                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-3 py-1.5 text-[9px] font-medium text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none pr-8 shadow-inner"
                                 value={brief.mediaReference?.startsWith('data:') ? '' : (brief.mediaReference || '')}
                                 onChange={(e) => updateBriefField(brief.id, 'mediaReference', e.target.value)}
                                 placeholder="Dán link ảnh..."
                               />
                               {brief.mediaReference?.startsWith('data:') && (
-                                <div className="absolute inset-0 bg-accent-primary/10 flex items-center px-2 rounded border border-accent-primary/20 pointer-events-none">
-                                  <span className="text-[10px] text-accent-primary font-medium truncate">Ảnh đã tải lên</span>
+                                <div className="absolute inset-0 bg-accent-primary/10 flex items-center px-3 rounded-lg border border-accent-primary/30 pointer-events-none">
+                                  <span className="text-[9px] text-accent-primary font-bold uppercase tracking-widest">Ảnh đã tải</span>
                                 </div>
                               )}
                               {brief.mediaReference && (
                                 <button 
                                   onClick={() => updateBriefField(brief.id, 'mediaReference', '')}
-                                  className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted hover:text-status-danger p-1"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-status-danger p-1 transition-colors"
                                 >
                                   <X size={10} />
                                 </button>
                               )}
                             </div>
-                            <label className="flex items-center justify-center gap-1.5 py-1.5 bg-bg-tertiary border border-dashed border-border-medium rounded text-[10px] text-text-muted hover:border-accent-primary hover:text-accent-primary transition-colors cursor-pointer">
+                            <label className="flex items-center justify-center gap-2 py-1.5 bg-bg-tertiary/30 border border-dashed border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:bg-accent-primary/5 transition-all cursor-pointer shadow-inner">
                               <Upload size={10} />
                               Tải ảnh lên
                               <input 
@@ -2846,28 +3021,28 @@ YÊU CẦU PROMPT:
                             </label>
                           </div>
                         </td>
-                        <td className="p-3 rounded-r-xl border-y border-r border-border-subtle group-hover:border-border-medium transition-colors">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between gap-2">
+                        <td className="p-2.5 rounded-r-xl border-y border-r border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                          <div className="flex flex-col items-end gap-1.5">
+                            <div className="flex items-center gap-2">
                               <StatusBadge status={brief.status} />
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setHistoryBriefId(brief.id);
                                 }}
-                                className="p-1 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded transition-colors"
+                                className="p-1.5 text-text-muted hover:text-accent-primary hover:bg-white/5 rounded-lg transition-all"
                                 title="Lịch sử"
                               >
                                 <History size={14} />
                               </button>
                             </div>
                             {brief.statusDetail && (
-                              <span className="text-[10px] text-text-muted font-medium line-clamp-1">{brief.statusDetail}</span>
+                              <span className="text-[9px] text-text-muted font-bold uppercase tracking-widest opacity-60 line-clamp-1 max-w-[120px] text-right">{brief.statusDetail}</span>
                             )}
                           </div>
                         </td>
                       </motion.tr>
-                    ))}
+                    )})}
                   </AnimatePresence>
                   {briefs.length === 0 && (
                     <tr>
