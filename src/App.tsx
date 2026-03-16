@@ -287,11 +287,35 @@ interface WorkspaceItemProps {
   brief: Brief;
   onContentClick: () => void;
   onImageClick: () => void;
+  onRetry: () => void;
 }
 
-const WorkspaceItem = ({ brief, onContentClick, onImageClick }: WorkspaceItemProps) => {
+const WorkspaceItem = ({ brief, onContentClick, onImageClick, onRetry }: WorkspaceItemProps) => {
   return (
-    <div className="flex gap-4 p-4 border-b border-border-subtle hover:bg-bg-tertiary/30 transition-colors group">
+    <div className="flex gap-4 p-4 border-b border-border-subtle hover:bg-bg-tertiary/30 transition-colors group relative">
+      {/* Error Overlay & Retry Button */}
+      {brief.status === 'error' && (
+        <div className="absolute inset-0 bg-status-danger/5 backdrop-blur-[1px] z-20 flex items-center justify-center gap-3">
+          <div className="bg-bg-secondary border border-status-danger/30 rounded-xl p-3 shadow-xl flex items-center gap-3">
+            <AlertCircle size={20} className="text-status-danger" />
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-text-primary">Xảy ra lỗi</span>
+              <span className="text-[10px] text-text-muted max-w-[150px] truncate">{brief.statusDetail}</span>
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry();
+              }}
+              className="ml-2 px-3 py-1.5 bg-status-danger text-white rounded-lg text-[10px] font-bold hover:bg-status-danger/80 transition-colors flex items-center gap-1.5"
+            >
+              <History size={12} />
+              LÀM LẠI
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content Box */}
       <div 
         onClick={onContentClick}
@@ -336,34 +360,51 @@ const WorkspacePanel = ({
   selectedBriefs, 
   onClose, 
   onContentClick, 
-  onImageClick 
+  onImageClick,
+  isCollapsed,
+  onToggleCollapse,
+  onRetry
 }: { 
   selectedBriefs: Brief[], 
   onClose: () => void,
   onContentClick: (brief: Brief) => void,
-  onImageClick: (brief: Brief) => void
+  onImageClick: (brief: Brief) => void,
+  isCollapsed: boolean,
+  onToggleCollapse: () => void,
+  onRetry: (id: string) => void
 }) => {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-bg-secondary relative">
-      <div className="px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20">
+      {/* Toggle Button */}
+      <button 
+        onClick={onToggleCollapse}
+        className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-secondary border border-border-subtle rounded-full flex items-center justify-center text-text-muted hover:text-accent-primary hover:border-accent-primary transition-all z-30 shadow-sm"
+      >
+        {isCollapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+      </button>
+
+      <div className={`px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between sticky top-0 z-10 ${isCollapsed ? 'px-2 justify-center' : ''}`}>
+        <div className={`flex items-center gap-3 ${isCollapsed ? 'flex-col gap-1' : ''}`}>
+          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 text-accent-primary flex items-center justify-center font-mono font-bold text-sm border border-accent-primary/20 shrink-0">
             {selectedBriefs.length}
           </div>
-          <h3 className="font-bold text-lg text-text-primary tracking-tight">Không gian làm việc</h3>
+          {!isCollapsed && <h3 className="font-bold text-lg text-text-primary tracking-tight whitespace-nowrap">Không Gian Làm Việc</h3>}
         </div>
-        <button onClick={onClose} className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors">
-          <X size={18} />
-        </button>
+        {!isCollapsed && (
+          <button onClick={onClose} className="p-2 text-text-muted hover:text-status-danger hover:bg-status-danger/10 rounded-lg transition-colors">
+            <X size={18} />
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
+      <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent ${isCollapsed ? 'hidden' : ''}`}>
         {selectedBriefs.map(brief => (
           <WorkspaceItem 
             key={brief.id} 
             brief={brief} 
             onContentClick={() => onContentClick(brief)}
             onImageClick={() => onImageClick(brief)}
+            onRetry={() => onRetry(brief.id)}
           />
         ))}
         {selectedBriefs.length === 0 && (
@@ -753,15 +794,40 @@ export default function App() {
   const [availableHeaders, setAvailableHeaders] = useState<string[]>([]);
   const [isFetchingHeaders, setIsFetchingHeaders] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, task: '' });
+  const stopProcessingRef = useRef(false);
 
   // Layout states
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isWorkspaceCollapsed, setIsWorkspaceCollapsed] = useState(false);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(true);
 
   const updateBriefField = (id: string, field: keyof Brief, value: any) => {
     setBriefs(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+  };
+
+  const retryBrief = async (briefId: string) => {
+    const brief = briefs.find(b => b.id === briefId);
+    if (!brief) return;
+    
+    // Save current selection
+    const currentSelected = new Set(selectedIds);
+    // Set selection to only this brief
+    setSelectedIds(new Set([briefId]));
+    
+    // Determine what failed
+    // If it has no content, retry content
+    // If it has content but no image, retry image
+    if (!brief.content) {
+      await generateContent();
+    } else {
+      await generateImage();
+    }
+    
+    // Restore selection
+    setSelectedIds(currentSelected);
   };
 
   const handleMediaUpload = (id: string, file: File) => {
@@ -1486,6 +1552,8 @@ export default function App() {
     }
     
     setIsProcessing(true);
+    setIsPaused(false);
+    stopProcessingRef.current = false;
     setProgress({ current: 0, total: selectedIds.size, task: 'Tạo Content' });
     
     const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
@@ -1493,26 +1561,40 @@ export default function App() {
     
     const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
 
-    await Promise.all(selectedBriefs.map(async (brief) => {
-      try {
-        addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
-        
-        const briefText = Object.entries(brief.briefData)
-          .map(([key, value]) => `- ${key}: ${value}`)
-          .join('\n');
+    try {
+      for (const brief of selectedBriefs) {
+        // Check for stop
+        if (stopProcessingRef.current) {
+          addLog('Đã dừng quá trình tạo content.', 'info');
+          break;
+        }
 
-        const toneInstruction = brief.tone ? `- Giọng điệu yêu cầu: ${brief.tone}` : '- Giọng điệu theo đúng yêu cầu trong Ghi chú (nếu có)';
+        // Check for pause
+        while (isPaused) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (stopProcessingRef.current) break;
+        }
+        if (stopProcessingRef.current) break;
 
-        const knowledgeBaseLinks = config.KNOWLEDGE_BASE_LINKS.filter(l => l.trim() !== "").map(l => `- ${l}`).join('\n');
-        const knowledgeBaseText = config.KNOWLEDGE_BASE_TEXT || "";
-        
-        const knowledgeBasePrompt = `
+        try {
+          addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
+          
+          const briefText = Object.entries(brief.briefData)
+            .map(([key, value]) => `- ${key}: ${value}`)
+            .join('\n');
+
+          const toneInstruction = brief.tone ? `- Giọng điệu yêu cầu: ${brief.tone}` : '- Giọng điệu theo đúng yêu cầu trong Ghi chú (nếu có)';
+
+          const knowledgeBaseLinks = config.KNOWLEDGE_BASE_LINKS.filter(l => l.trim() !== "").map(l => `- ${l}`).join('\n');
+          const knowledgeBaseText = config.KNOWLEDGE_BASE_TEXT || "";
+          
+          const knowledgeBasePrompt = `
 KIẾN THỨC CHUYÊN NGÀNH:
 ${knowledgeBaseText}
 ${knowledgeBaseLinks ? `\nTÀI LIỆU THAM KHẢO (LINKS):\n${knowledgeBaseLinks}` : ""}
 `;
 
-        const prompt = `Bạn là chuyên gia viết content marketing.
+          const prompt = `Bạn là chuyên gia viết content marketing.
 
 ${knowledgeBasePrompt}
 
@@ -1527,62 +1609,64 @@ ${toneInstruction}
 - Xuất content dạng text thuần, không dùng markdown
 - BẮT BUỘC: Viết bằng tiếng Việt có dấu.`;
 
-        // Prepare parts for multimodal input
-        const parts: any[] = [{ text: prompt }];
-        
-        // Add files to parts
-        config.KNOWLEDGE_BASE_FILES.forEach(file => {
-          if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-            parts.push({
-              inlineData: {
-                data: file.data.split(',')[1], // Remove data:mime;base64,
-                mimeType: file.type
-              }
-            });
-          } else {
-            parts.push({ text: `\nNỘI DUNG TÀI LIỆU (${file.name}):\n${file.data.substring(0, 50000)}` });
-          }
-        });
+          const parts: any[] = [{ text: prompt }];
+          
+          config.KNOWLEDGE_BASE_FILES.forEach(file => {
+            if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+              parts.push({
+                inlineData: {
+                  data: file.data.split(',')[1],
+                  mimeType: file.type
+                }
+              });
+            } else {
+              parts.push({ text: `\nNỘI DUNG TÀI LIỆU (${file.name}):\n${file.data.substring(0, 50000)}` });
+            }
+          });
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.1-pro-preview',
-          contents: [{ parts }],
-        });
-        
-        const content = response.text || '';
-        
-        setBriefs(prev => prev.map(b => {
-          if (b.id === brief.id) {
-            const newHistoryItem: HistoryItem = {
-              id: Math.random().toString(36).substr(2, 9),
-              content,
-              imageUrl: b.imageUrl,
-              imageBase64: b.imageBase64,
-              timestamp: new Date().toISOString(),
-              status: 'content_generated',
-              statusDetail: 'Đã tạo content'
-            };
-            return { 
-              ...b, 
-              content, 
-              status: 'content_generated', 
-              statusDetail: 'Đã tạo content',
-              history: [newHistoryItem, ...b.history]
-            };
-          }
-          return b;
-        }));
-        addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
-      } catch (err: any) {
-        addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${err.message}`, 'error');
-        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
-      } finally {
-        count++;
-        setProgress(p => ({ ...p, current: count }));
+          const response = await ai.models.generateContent({
+            model: 'gemini-3.1-pro-preview',
+            contents: [{ parts }],
+          });
+          
+          const content = response.text || '';
+          
+          setBriefs(prev => prev.map(b => {
+            if (b.id === brief.id) {
+              const newHistoryItem: HistoryItem = {
+                id: Math.random().toString(36).substr(2, 9),
+                content,
+                imageUrl: b.imageUrl,
+                imageBase64: b.imageBase64,
+                timestamp: new Date().toISOString(),
+                status: 'content_generated',
+                statusDetail: 'Đã tạo content'
+              };
+              return { 
+                ...b, 
+                content, 
+                status: 'content_generated', 
+                statusDetail: 'Đã tạo content',
+                history: [newHistoryItem, ...b.history]
+              };
+            }
+            return b;
+          }));
+          addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
+        } catch (err: any) {
+          addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${err.message}`, 'error');
+          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+        } finally {
+          count++;
+          setProgress(p => ({ ...p, current: count }));
+        }
       }
-    }));
-    
-    setIsProcessing(false);
+    } catch (err: any) {
+      addLog(`Lỗi hệ thống khi tạo Content: ${err.message}`, 'error');
+    } finally {
+      setIsProcessing(false);
+      setIsPaused(false);
+    }
   };
 
   const generateImage = async () => {
@@ -1599,6 +1683,8 @@ ${toneInstruction}
     }
     
     setIsProcessing(true);
+    setIsPaused(false);
+    stopProcessingRef.current = false;
     setProgress({ current: 0, total: selectedIds.size, task: 'Tạo Media AI' });
     
     const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
@@ -1608,6 +1694,19 @@ ${toneInstruction}
 
     try {
       for (const brief of selectedBriefs) {
+        // Check for stop
+        if (stopProcessingRef.current) {
+          addLog('Đã dừng quá trình tạo Media.', 'info');
+          break;
+        }
+
+        // Check for pause
+        while (isPaused) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (stopProcessingRef.current) break;
+        }
+        if (stopProcessingRef.current) break;
+
         try {
           if (brief.mediaFormat === 'Video') {
             addLog(`Đang tạo Video cho dòng ${brief.rowIndex}...`, 'info');
@@ -1712,11 +1811,22 @@ YÊU CẦU PROMPT:
                 imageConfig: {
                   aspectRatio: (brief.mediaSize || "1:1") as any,
                   imageSize: "1K"
-                }
+                },
+                tools: brief.mediaReference && !brief.mediaReference.startsWith('data:') ? [
+                  {
+                    googleSearch: {
+                      searchTypes: {
+                        webSearch: {},
+                        imageSearch: {},
+                      }
+                    },
+                  },
+                ] : undefined,
               }
             });
             
-            const base64Data = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            const candidate = imageResponse.candidates?.[0];
+            const base64Data = candidate?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
             
             if (base64Data) {
               setBriefs(prev => prev.map(b => {
@@ -1742,8 +1852,21 @@ YÊU CẦU PROMPT:
               }));
               addLog(`Đã tạo ảnh cho dòng ${brief.rowIndex} thành công.`, 'success');
             } else {
-              throw new Error('Không nhận được dữ liệu ảnh từ API.');
+              const finishReason = candidate?.finishReason;
+              if (finishReason === 'SAFETY') {
+                throw new Error('Yêu cầu bị chặn do vi phạm chính sách an toàn (Safety Filter). Hãy thử thay đổi mô tả.');
+              } else if (finishReason === 'RECITATION') {
+                throw new Error('Yêu cầu bị chặn do vi phạm bản quyền (Recitation Filter).');
+              } else {
+                console.log("Image API Debug:", imageResponse);
+                throw new Error(`Không nhận được dữ liệu ảnh từ API. Lý do: ${finishReason || 'Không xác định'}.`);
+              }
             }
+          }
+          
+          // Thêm khoảng nghỉ ngắn giữa các dòng để tránh rate limit
+          if (count < selectedBriefs.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (err: any) {
           addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
@@ -2294,9 +2417,33 @@ YÊU CẦU PROMPT:
                   exit={{ height: 0, opacity: 0 }}
                   className="px-4 py-3 bg-accent-primary/5 border-b border-accent-primary/20 overflow-hidden shrink-0"
                 >
-                  <div className="flex justify-between text-xs font-bold text-accent-primary mb-2 uppercase tracking-wider">
+                  <div className="flex justify-between items-center text-xs font-bold text-accent-primary mb-2 uppercase tracking-wider">
                     <span>{progress.task} ({progress.current}/{progress.total})</span>
-                    <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 bg-accent-primary/10 rounded-lg px-2 py-1">
+                        <button 
+                          onClick={() => setIsPaused(!isPaused)}
+                          className="hover:text-white transition-colors flex items-center gap-1"
+                          title={isPaused ? "Tiếp tục" : "Tạm dừng"}
+                        >
+                          {isPaused ? <Play size={12} fill="currentColor" /> : <div className="flex gap-0.5"><div className="w-0.5 h-3 bg-current"></div><div className="w-0.5 h-3 bg-current"></div></div>}
+                          <span>{isPaused ? "TIẾP TỤC" : "TẠM DỪNG"}</span>
+                        </button>
+                        <div className="w-px h-3 bg-accent-primary/20 mx-1"></div>
+                        <button 
+                          onClick={() => {
+                            stopProcessingRef.current = true;
+                            setIsPaused(false);
+                          }}
+                          className="hover:text-status-danger transition-colors flex items-center gap-1"
+                          title="Dừng hẳn"
+                        >
+                          <XCircle size={12} />
+                          <span>DỪNG</span>
+                        </button>
+                      </div>
+                      <span>{Math.round((progress.current / progress.total) * 100)}%</span>
+                    </div>
                   </div>
                   <div className="w-full bg-bg-tertiary rounded-full h-1.5 overflow-hidden">
                     <motion.div 
@@ -2510,7 +2657,7 @@ YÊU CẦU PROMPT:
             {(activeBriefId || selectedIds.size > 0) && (
               <motion.div 
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: isPreviewExpanded ? '100%' : '40%', opacity: 1 }}
+                animate={{ width: isPreviewExpanded ? '100%' : (isWorkspaceCollapsed ? 68 : '40%'), opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
                 transition={{ type: "spring", bounce: 0, duration: 0.3 }}
                 className="flex flex-col bg-bg-secondary relative z-10 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
@@ -2524,6 +2671,9 @@ YÊU CẦU PROMPT:
                       url: brief.imageBase64 ? `data:image/jpeg;base64,${brief.imageBase64}` : (brief.imageUrl || ''), 
                       type: brief.mediaFormat === 'Video' ? 'video' : 'image' 
                     })}
+                    isCollapsed={isWorkspaceCollapsed}
+                    onToggleCollapse={() => setIsWorkspaceCollapsed(!isWorkspaceCollapsed)}
+                    onRetry={retryBrief}
                   />
                 ) : activeBriefId ? (
                   <PreviewPanel 
