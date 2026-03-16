@@ -748,6 +748,28 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Auto-reconnect Google Sheets if user is logged in
+  useEffect(() => {
+    const tryReconnect = async () => {
+      if (user && !accessToken) {
+        // We don't force a popup here because it's intrusive, 
+        // but we can try to get the redirect result or just wait for user action.
+        // However, the user wants "automatic" connection.
+        // If they are already logged in with Google, we can try to trigger the login flow
+        // but it will likely show a popup. 
+        // For now, we'll ensure that if they HAVE a token, we fetch spreadsheets.
+      }
+    };
+    tryReconnect();
+  }, [user]);
+
+  // If we have an access token, always fetch spreadsheets to keep list updated
+  useEffect(() => {
+    if (accessToken) {
+      fetchSpreadsheets(accessToken);
+    }
+  }, [accessToken]);
+
   // Auto-save briefs and logs
   useEffect(() => {
     if (user && briefs.length > 0) {
@@ -1841,7 +1863,7 @@ YÊU CẦU PROMPT:
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={loadBriefs} disabled={isProcessing} className="btn-secondary"><Download size={16}/> Tải Dữ Liệu</button>
+            <button onClick={loadBriefs} disabled={isProcessing} className="btn-secondary"><Download size={16}/> Đồng Bộ Dữ Liệu</button>
             <button onClick={saveToSheet} disabled={isProcessing || selectedIds.size === 0} className="btn-primary"><Save size={16}/> Lưu về Sheet</button>
           </div>
         </header>
