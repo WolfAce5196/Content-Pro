@@ -117,7 +117,7 @@ interface Brief {
   content: string;
   imageUrl: string;
   imageBase64?: string;
-  status: 'pending' | 'content_generated' | 'image_generated' | 'video_generated' | 'uploaded' | 'saved' | 'done' | 'incomplete' | 'error';
+  status: 'pending' | 'content_generated' | 'image_generated' | 'video_generated' | 'uploaded' | 'saved' | 'done' | 'incomplete' | 'error' | 'generating_content' | 'generating_media';
   statusDetail?: string;
   // New fields
   briefMedia?: string;
@@ -843,6 +843,8 @@ export default function App() {
   const [isFetchingHeaders, setIsFetchingHeaders] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false);
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
   const [progress, setProgress] = useState({ current: 0, total: 0, task: '' });
   const [syncError, setSyncError] = useState<string | null>(null);
   const stopProcessingRef = useRef(false);
@@ -864,6 +866,10 @@ export default function App() {
 
   const updateBriefField = (id: string, field: keyof Brief, value: any) => {
     setBriefs(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+  };
+
+  const updateBrief = (id: string, updates: Partial<Brief>) => {
+    setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
   };
 
   const retryBrief = async (briefId: string) => {
@@ -3050,11 +3056,23 @@ YÊU CẦU PROMPT:
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-3 bg-bg-tertiary shadow-md border border-white/10 rounded-xl px-3 py-1.5">
                         <button 
-                          onClick={() => setIsPaused(!isPaused)}
+                          onClick={() => {
+                            setIsPaused(!isPaused);
+                            isPausedRef.current = !isPaused;
+                          }}
                           className="text-accent-primary hover:scale-110 transition-all flex items-center gap-2 font-bold text-[10px] tracking-wider"
                           title={isPaused ? "Tiếp tục" : "Tạm dừng"}
                         >
-                          {isPaused ? <Play size={14} fill="currentColor" /> : <div className="flex gap-1"><div className="w-1 h-3.5 bg-current rounded-full"></div><div className="w-1 h-3.5 bg-current rounded-full"></div></div>}
+                          {isPaused ? (
+                            <div className="w-3 h-3 border-2 border-current rounded-full flex items-center justify-center">
+                              <div className="w-1 h-1 bg-current rounded-full"></div>
+                            </div>
+                          ) : (
+                            <div className="relative w-3 h-3">
+                              <div className="absolute inset-0 bg-current rounded-full animate-ping opacity-75"></div>
+                              <div className="absolute inset-0 bg-current rounded-full"></div>
+                            </div>
+                          )}
                           <span>{isPaused ? "TIẾP TỤC" : "TẠM DỪNG"}</span>
                         </button>
                         <div className="w-px h-4 bg-white/10 mx-1"></div>
