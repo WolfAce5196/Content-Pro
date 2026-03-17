@@ -896,7 +896,7 @@ export default function App() {
     // Determine what failed
     // Luôn cho phép retry cả content và image
     await generateContent(true);
-    await generateImage();
+    await generateImage(true);
     
     // Restore selection
     setSelectedIds(currentSelected);
