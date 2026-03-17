@@ -2895,9 +2895,9 @@ YÊU CẦU PROMPT:
         {/* Main Area */}
         <main className="flex-1 flex overflow-hidden bg-bg-primary">
           {/* Table Area */}
-          <div className="flex flex-col h-full border-r border-border-subtle flex-1 min-w-0 overflow-hidden">
+          <div className="flex flex-col h-full border-r border-border-subtle flex-1 min-w-0">
             {/* Action Bar */}
-            <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0">
+            <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0 z-50">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 bg-bg-tertiary/80 px-3 py-1.5 rounded-lg border border-white/10 shadow-inner">
                   <div className="w-2 h-2 rounded-full bg-accent-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]"></div>
@@ -2906,7 +2906,7 @@ YÊU CẦU PROMPT:
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1 bg-bg-tertiary/80 p-1 rounded-xl border border-white/10 shadow-inner">
+                <div className="flex items-center gap-1 bg-bg-tertiary/80 p-1 rounded-xl border border-white/10 shadow-inner z-[9999]">
                   {[
                     { id: 'all', label: 'Tất Cả' },
                     { id: 'done', label: 'Đã Làm' },
@@ -2933,7 +2933,7 @@ YÊU CẦU PROMPT:
                       {tab.label}
                     </button>
                   ))}
-                  <div className="relative">
+                  <div className="relative z-[9999]">
                     <button
                       onClick={() => setShowReviewDropdown(!showReviewDropdown)}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === 'review_content' || filterTab === 'review_media' ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
@@ -2942,7 +2942,7 @@ YÊU CẦU PROMPT:
                       {showReviewDropdown ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </button>
                     {showReviewDropdown && (
-                      <div className="absolute top-full right-0 mt-1 bg-bg-secondary border border-white/10 rounded-lg shadow-lg z-50 p-1 min-w-[150px]">
+                      <div className="absolute top-full right-0 mt-1 bg-bg-secondary border border-white/10 rounded-lg shadow-lg z-[9999] p-1 min-w-[150px]">
                         <button
                           onClick={() => { setFilterTab('review_content'); setShowReviewDropdown(false); }}
                           className={`block w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${filterTab === 'review_content' ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
@@ -3098,7 +3098,7 @@ YÊU CẦU PROMPT:
                   <col className="w-[250px]" />
                   <col className="w-40" />
                 </colgroup>
-                <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-md">
+                <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-md">
                   <tr>
                     <th className="p-4 text-center">
                       <input type="checkbox" 
