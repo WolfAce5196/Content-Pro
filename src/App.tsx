@@ -2897,12 +2897,11 @@ YÊU CẦU PROMPT:
             </AnimatePresence>
 
             {/* Table */}
-            <div className="flex-1 overflow-auto px-6 pb-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-              <div className="h-2 shrink-0"></div>
-              <table className="min-w-[1200px] w-full text-xs text-left border-separate border-spacing-y-2 table-fixed">
-                <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-20 bg-bg-primary/90 backdrop-blur-md border-b border-white/5">
+            <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              <table className="w-full min-w-[1200px] text-xs text-left border-separate border-spacing-y-2 border-spacing-x-0 table-fixed">
+                <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-md">
                   <tr>
-                    <th className="p-2.5 w-12 text-center">
+                    <th className="p-4 w-14 text-center">
                       <input type="checkbox" 
                         className="w-4 h-4 rounded border-white/10 bg-bg-tertiary text-accent-primary focus:ring-accent-primary/30 transition-all cursor-pointer shadow-inner"
                         checked={filteredBriefs.length > 0 && Array.from(selectedIds).filter(id => filteredBriefs.some(b => b.id === id)).length === filteredBriefs.length}
@@ -2920,12 +2919,12 @@ YÊU CẦU PROMPT:
                         }}
                       />
                     </th>
-                    <th className="p-2.5 w-16 text-center">Dòng</th>
-                    <th className="p-2.5 w-[350px]">Tóm tắt Brief</th>
-                    <th className="p-2.5 w-[250px]">Mô tả Media</th>
-                    <th className="p-2.5 w-[180px]">Định dạng</th>
-                    <th className="p-2.5 w-[250px]">Tham chiếu</th>
-                    <th className="p-2.5 w-40 text-right pr-6">Trạng thái</th>
+                    <th className="p-4 w-20 text-center">Dòng</th>
+                    <th className="p-4 w-[400px]">Tóm tắt Brief</th>
+                    <th className="p-4 w-[300px]">Mô tả Media</th>
+                    <th className="p-4 w-[200px]">Định dạng</th>
+                    <th className="p-4 w-[250px]">Tham chiếu</th>
+                    <th className="p-4 w-40 text-right pr-8">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2944,7 +2943,7 @@ YÊU CẦU PROMPT:
                             <div className="absolute inset-0 shimmer opacity-10 pointer-events-none z-0" />
                           )}
 
-                          <td className="p-2.5 text-center rounded-l-xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
+                          <td className="p-4 text-center rounded-l-2xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
                             <input type="checkbox" 
                               className="custom-checkbox"
                               checked={selectedIds.has(brief.id)}
@@ -2959,12 +2958,12 @@ YÊU CẦU PROMPT:
                               }}
                             />
                           </td>
-                          <td className="p-2.5 font-mono text-text-muted text-xs border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
-                            <div className="w-8 h-8 rounded-lg bg-bg-tertiary border border-white/5 flex items-center justify-center font-bold text-text-secondary group-hover:bg-white/5 group-hover:border-accent-primary/40 transition-all shadow-inner">
+                          <td className="p-4 font-mono text-text-muted text-xs border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                            <div className="w-10 h-10 rounded-xl bg-bg-tertiary border border-white/5 flex items-center justify-center font-bold text-text-secondary group-hover:bg-white/5 group-hover:border-accent-primary/40 transition-all shadow-inner mx-auto">
                               {brief.rowIndex}
                             </div>
                           </td>
-                          <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={() => setActiveBriefId(brief.id)}>
+                          <td className="p-4 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={() => setActiveBriefId(brief.id)}>
                             <div className="text-sm font-medium leading-relaxed text-text-primary line-clamp-2 mb-2 transition-colors font-sans">
                               {config.COL_BRIEFS.length > 0 ? brief.briefData[config.COL_BRIEFS[0]] || <span className="text-text-muted/40 italic font-normal">Trống</span> : <span className="text-text-muted/40 italic font-normal">Trống</span>}
                             </div>
@@ -2979,20 +2978,20 @@ YÊU CẦU PROMPT:
                               )}
                             </div>
                           </td>
-                        <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                        <td className="p-4 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                           <textarea 
-                            className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-3 py-2 text-[11px] text-text-primary font-medium resize-none min-h-[60px] scrollbar-none focus:ring-1 focus:ring-accent-primary/30 focus:border-accent-primary/40 transition-all font-sans"
+                            className="w-full bg-bg-tertiary/30 border border-white/5 rounded-xl px-3 py-2 text-[11px] text-text-primary font-medium resize-none min-h-[70px] scrollbar-none focus:ring-1 focus:ring-accent-primary/30 focus:border-accent-primary/40 transition-all font-sans"
                             value={brief.briefMedia || ''}
                             onChange={(e) => updateBriefField(brief.id, 'briefMedia', e.target.value)}
                             placeholder="Nhập mô tả media..."
                             onClick={e => e.stopPropagation()}
                           />
                         </td>
-                        <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                        <td className="p-4 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                           <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                             <div className="relative group/select">
                               <select 
-                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none cursor-pointer appearance-none shadow-inner"
+                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-xl px-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none cursor-pointer appearance-none shadow-inner"
                                 value={brief.mediaFormat || 'Ảnh'}
                                 onChange={(e) => updateBriefField(brief.id, 'mediaFormat', e.target.value as any)}
                               >
@@ -3003,7 +3002,7 @@ YÊU CẦU PROMPT:
                             </div>
                             <div className="relative group/select">
                               <select 
-                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-2 py-1.5 text-[9px] font-medium text-text-muted focus:ring-1 focus:ring-accent-primary/30 outline-none cursor-pointer appearance-none shadow-inner"
+                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-xl px-2 py-1.5 text-[9px] font-medium text-text-muted focus:ring-1 focus:ring-accent-primary/30 outline-none cursor-pointer appearance-none shadow-inner"
                                 value={brief.mediaSize || '1:1'}
                                 onChange={(e) => updateBriefField(brief.id, 'mediaSize', e.target.value)}
                               >
@@ -3026,18 +3025,18 @@ YÊU CẦU PROMPT:
                             </div>
                           </div>
                         </td>
-                        <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                        <td className="p-4 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                           <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
                             <div className="relative group/ref">
                               <input 
                                 type="text"
-                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-lg px-3 py-1.5 text-[9px] font-medium text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none pr-8 shadow-inner"
+                                className="w-full bg-bg-tertiary/30 border border-white/5 rounded-xl px-3 py-1.5 text-[9px] font-medium text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none pr-8 shadow-inner"
                                 value={brief.mediaReference?.startsWith('data:') ? '' : (brief.mediaReference || '')}
                                 onChange={(e) => updateBriefField(brief.id, 'mediaReference', e.target.value)}
                                 placeholder="Dán link ảnh..."
                               />
                               {brief.mediaReference?.startsWith('data:') && (
-                                <div className="absolute inset-0 bg-accent-primary/10 flex items-center px-3 rounded-lg border border-accent-primary/30 pointer-events-none">
+                                <div className="absolute inset-0 bg-accent-primary/10 flex items-center px-3 rounded-xl border border-accent-primary/30 pointer-events-none">
                                   <span className="text-[9px] text-accent-primary font-bold uppercase tracking-widest">Ảnh đã tải</span>
                                 </div>
                               )}
@@ -3050,7 +3049,7 @@ YÊU CẦU PROMPT:
                                 </button>
                               )}
                             </div>
-                            <label className="flex items-center justify-center gap-2 py-1.5 bg-bg-tertiary/30 border border-dashed border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:bg-accent-primary/5 transition-all cursor-pointer shadow-inner">
+                            <label className="flex items-center justify-center gap-2 py-1.5 bg-bg-tertiary/30 border border-dashed border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest text-text-muted hover:border-accent-primary/50 hover:text-accent-primary hover:bg-accent-primary/5 transition-all cursor-pointer shadow-inner">
                               <Upload size={10} />
                               Tải ảnh lên
                               <input 
@@ -3065,7 +3064,7 @@ YÊU CẦU PROMPT:
                             </label>
                           </div>
                         </td>
-                        <td className="p-2.5 rounded-r-xl border-y border-r border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                        <td className="p-4 rounded-r-2xl border-y border-r border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative text-right pr-8">
                           <div className="flex flex-col items-end gap-1.5">
                             <div className="flex items-center gap-2">
                               <StatusBadge status={brief.status} />
