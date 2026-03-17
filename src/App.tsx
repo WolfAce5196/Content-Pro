@@ -2631,6 +2631,12 @@ YÊU CẦU PROMPT:
     if (filterTab === 'done') return brief.status === 'done' || brief.status === 'saved' || brief.statusDetail === 'Hoàn Thành';
     if (filterTab === 'pending') return brief.status === 'pending' || brief.statusDetail === 'Chưa Xử Lý' || brief.statusDetail === 'Chưa xử lý';
     if (filterTab === 'incomplete') return brief.status === 'incomplete' || (brief.status !== 'pending' && brief.status !== 'done' && brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành');
+    if (filterTab === 'review') {
+      const missingContent = !brief.content;
+      const missingImage = !brief.imageUrl && !brief.imageBase64;
+      const isMissingOne = (missingContent || missingImage) && !(missingContent && missingImage);
+      return brief.status === 'error' || isMissingOne;
+    }
     return true;
   });
 
@@ -2906,7 +2912,8 @@ YÊU CẦU PROMPT:
                     { id: 'all', label: 'Tất Cả' },
                     { id: 'done', label: 'Đã Làm' },
                     { id: 'pending', label: 'Chưa Làm' },
-                    { id: 'incomplete', label: 'Cần Hoàn Thiện' }
+                    { id: 'incomplete', label: 'Cần Hoàn Thiện' },
+                    { id: 'review', label: 'Rà Soát' }
                   ].map(tab => (
                     <button
                       key={tab.id}
