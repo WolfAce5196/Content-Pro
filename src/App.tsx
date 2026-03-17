@@ -451,13 +451,17 @@ const PreviewPanel = ({
   updateBrief, 
   onClose, 
   addLog, 
-  setPreviewMedia
+  setPreviewMedia,
+  generateSingleContent,
+  generateSingleImage
 }: { 
   brief: Brief, 
   updateBrief: (id: string, updates: Partial<Brief>) => void, 
   onClose: () => void, 
   addLog: (msg: string, type?: 'info'|'error'|'success') => void, 
-  setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void
+  setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void,
+  generateSingleContent: (brief: Brief) => Promise<void>,
+  generateSingleImage: (brief: Brief) => Promise<void>
 }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'image' | 'history'>('content');
 
@@ -635,8 +639,22 @@ const PreviewPanel = ({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
               transition={{ duration: 0.2 }}
-              className="h-full flex flex-col"
+              className="h-full flex flex-col gap-4"
             >
+              <div className="flex gap-2">
+                <textarea 
+                  className="flex-1 p-2 bg-bg-secondary border border-white/5 rounded-lg text-xs text-text-primary"
+                  placeholder="Sửa content..."
+                  defaultValue={brief.content}
+                  onBlur={(e) => updateBrief(brief.id, { content: e.target.value })}
+                />
+                <button 
+                  onClick={() => generateSingleContent(brief)}
+                  className="px-4 py-2 bg-accent-primary text-white rounded-lg text-xs font-bold hover:bg-accent-primary/80 transition-colors"
+                >
+                  Sửa Content
+                </button>
+              </div>
                     {!brief.content && brief.status !== 'content_generated' ? (
                       <div className="flex-1 flex flex-col items-center justify-center text-text-muted gap-4 border border-dashed border-white/10 rounded-xl p-8">
                         <div className="w-16 h-16 rounded-full bg-bg-tertiary/50 flex items-center justify-center">
@@ -670,6 +688,21 @@ const PreviewPanel = ({
               transition={{ duration: 0.2 }}
               className="h-full flex flex-col gap-6"
             >
+              <div className="flex gap-2 px-6">
+                <input 
+                  type="text"
+                  className="flex-1 p-2 bg-bg-secondary border border-white/5 rounded-lg text-xs text-text-primary"
+                  placeholder="Sửa mô tả media..."
+                  defaultValue={brief.briefMedia}
+                  onBlur={(e) => updateBrief(brief.id, { briefMedia: e.target.value })}
+                />
+                <button 
+                  onClick={() => generateSingleImage(brief)}
+                  className="px-4 py-2 bg-accent-secondary text-white rounded-lg text-xs font-bold hover:bg-accent-secondary/80 transition-colors"
+                >
+                  Sửa Media
+                </button>
+              </div>
                     <div className="w-full max-w-2xl mx-auto aspect-video bg-bg-secondary rounded-2xl border border-white/5 flex items-center justify-center overflow-hidden relative group shadow-inner">
                       {brief.imageBase64 ? (
                         <>
@@ -1682,6 +1715,59 @@ export default function App() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, config.GOOGLE_SHEET_ID, config.SHEET_GID]);
+
+  const generateSingleContent = async (brief: Brief) => {
+    const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
+    
+    try {
+      addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
+      
+      const briefText = Object.entries(brief.briefData)
+        .map(([key, value]) => `- ${key}: ${value}`)
+        .join('\n');
+
+      const toneInstruction = brief.tone ? `- Giọng điệu yêu cầu: ${brief.tone}` : '- Giọng điệu theo đúng yêu cầu trong Ghi chú (nếu có)';
+
+      const knowledgeBaseLinks = config.KNOWLEDGE_BASE_LINKS.filter(l => l.trim() !== "").map(l => `- ${l}`).join('\n');
+      const knowledgeBaseText = config.KNOWLEDGE_BASE_TEXT || "";
+      
+      const knowledgeBasePrompt = `
+KIẾN THỨC CHUYÊN NGÀNH:
+${knowledgeBaseText}
+${knowledgeBaseLinks ? `\nTÀI LIỆU THAM KHẢO (LINKS):\n${knowledgeBaseLinks}` : ""}
+`;
+
+      const prompt = `Bạn là chuyên gia viết content marketing.
+
+${knowledgeBasePrompt}
+
+BRIEF:
+${briefText}
+${toneInstruction}
+
+Yêu cầu: Viết nội dung dựa trên brief trên.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+      });
+
+      const content = response.text || "";
+      updateBrief(brief.id, { content, status: 'content_generated', statusDetail: 'Đã tạo Content' });
+      addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
+      
+    } catch (error: any) {
+      addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${error.message}`, 'error');
+      updateBrief(brief.id, { status: 'error', statusDetail: 'Lỗi Content' });
+    }
+  };
+
+  const generateSingleImage = async (brief: Brief) => {
+    const originalSelectedIds = selectedIds;
+    setSelectedIds(new Set([brief.id]));
+    await generateImage(true);
+    setSelectedIds(originalSelectedIds);
+  };
 
   const generateContent = async () => {
     if (selectedIds.size === 0) return;
@@ -3308,6 +3394,8 @@ YÊU CẦU PROMPT:
             onClose={() => setActiveBriefId(null)}
             addLog={addLog}
             setPreviewMedia={setPreviewMedia}
+            generateSingleContent={generateSingleContent}
+            generateSingleImage={generateSingleImage}
           />
         )}
       </AnimatePresence>
