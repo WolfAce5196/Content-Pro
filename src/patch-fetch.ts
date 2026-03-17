@@ -12,16 +12,19 @@ const patchFetch = (target: any, name: string) => {
     if (descriptor && (!descriptor.writable || descriptor.get)) {
       console.log(`[FetchPatch] Patching fetch on ${name}. Configurable: ${descriptor.configurable}`);
       
-      const originalFetch = target.fetch;
+      let currentFetch = target.fetch;
       
       try {
         Object.defineProperty(target, 'fetch', {
-          value: originalFetch,
-          writable: true,
+          get() { return currentFetch; },
+          set(v) { 
+            console.log(`[FetchPatch] fetch on ${name} is being set to a new value`);
+            currentFetch = v; 
+          },
           configurable: true,
           enumerable: true
         });
-        console.log(`[FetchPatch] Successfully patched ${name}.fetch`);
+        console.log(`[FetchPatch] Successfully patched ${name}.fetch with getter/setter`);
       } catch (e) {
         console.warn(`[FetchPatch] Failed to defineProperty on ${name}.fetch:`, e);
         
@@ -29,7 +32,7 @@ const patchFetch = (target: any, name: string) => {
         if (descriptor.configurable) {
           try {
             delete target.fetch;
-            target.fetch = originalFetch;
+            target.fetch = currentFetch;
             console.log(`[FetchPatch] Successfully patched ${name}.fetch via delete/assign`);
           } catch (e2) {
             console.error(`[FetchPatch] Final attempt failed for ${name}.fetch:`, e2);

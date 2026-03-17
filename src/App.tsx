@@ -834,7 +834,7 @@ export default function App() {
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeBriefId, setActiveBriefId] = useState<string | null>(null);
-  const [logs, setLogs] = useState<{time: string, msg: string, type: 'info'|'error'|'success'}[]>([]);
+  const [logs, setLogs] = useState<{id: string, time: string, msg: string, type: 'info'|'error'|'success'}[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [availableTabs, setAvailableTabs] = useState<{id: number, title: string}[]>([]);
@@ -963,7 +963,8 @@ export default function App() {
 
   const addLog = (msg: string, type: 'info'|'error'|'success' = 'info') => {
     const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
-    setLogs(prev => [{ time, msg, type }, ...prev].slice(0, 100));
+    const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    setLogs(prev => [{ id, time, msg, type }, ...prev].slice(0, 100));
   };
 
   const renderLogMessage = (msg: string) => {
@@ -1251,6 +1252,20 @@ export default function App() {
   // Auto-save briefs and logs
   useEffect(() => {
     if (briefs.length > 0) {
+      // Helper to remove undefined values for Firestore
+      const removeUndefined = (obj: any): any => {
+        if (Array.isArray(obj)) {
+          return obj.map(removeUndefined);
+        } else if (obj !== null && typeof obj === 'object') {
+          return Object.fromEntries(
+            Object.entries(obj)
+              .filter(([_, v]) => v !== undefined)
+              .map(([k, v]) => [k, removeUndefined(v)])
+          );
+        }
+        return obj;
+      };
+
       // Always save to localStorage immediately for maximum persistence
       try {
         localStorage.setItem('ais_briefs_backup', JSON.stringify(briefs));
@@ -1270,12 +1285,19 @@ export default function App() {
       if (user) {
         const saveData = async () => {
           try {
-            const optimizedBriefs = briefs.map(b => ({ ...b, imageBase64: undefined }));
-            await setDoc(doc(db, 'userData', user.uid), {
+            // Firestore doesn't support 'undefined' values
+            const optimizedBriefs = briefs.map(b => {
+              const { imageBase64, ...rest } = b;
+              return rest;
+            });
+            
+            const dataToSave = removeUndefined({
               briefs: optimizedBriefs,
-              logs: logs.slice(0, 50), // Only save last 50 logs to avoid size limits
+              logs: logs.slice(0, 50),
               updatedAt: new Date().toISOString()
-            }, { merge: true });
+            });
+
+            await setDoc(doc(db, 'userData', user.uid), dataToSave, { merge: true });
           } catch (error) {
             console.error("Error auto-saving data:", error);
           }
@@ -2526,29 +2548,9 @@ YÊU CẦU PROMPT:
         </div>
 
         <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6 scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
-          {/* Menu Items */}
-          <div className="space-y-1">
-            <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
-              <Settings size={14} className="shrink-0" />
-              {!isSidebarCollapsed && <span>Cấu Hình Hệ Thống</span>}
-            </button>
-            <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
-              <Terminal size={14} className="shrink-0" />
-              {!isSidebarCollapsed && <span>Hệ Thống Logs</span>}
-            </button>
-            <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
-              <BookOpen size={14} className="shrink-0" />
-              {!isSidebarCollapsed && <span>Tài Liệu Hướng Dẫn</span>}
-            </button>
-            <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
-              <Info size={14} className="shrink-0" />
-              {!isSidebarCollapsed && <span>Mô Tả Thành Phần</span>}
-            </button>
-          </div>
-
           {/* Column Config */}
           {!isSidebarCollapsed && (
-            <div className="space-y-4 pt-4 border-t border-white/5">
+            <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Cấu Hình Cột</h3>
                 <button 
@@ -2580,6 +2582,31 @@ YÊU CẦU PROMPT:
               </div>
             </div>
           )}
+
+          {/* Setting Section */}
+          <div className={`space-y-4 ${!isSidebarCollapsed ? 'pt-4 border-t border-white/5' : ''}`}>
+            {!isSidebarCollapsed && (
+              <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider px-1">Setting</h3>
+            )}
+            <div className="space-y-1">
+              <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+                <Settings size={14} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Cấu Hình Hệ Thống</span>}
+              </button>
+              <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+                <Terminal size={14} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Hệ Thống Logs</span>}
+              </button>
+              <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+                <BookOpen size={14} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Tài Liệu Hướng Dẫn</span>}
+              </button>
+              <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+                <Info size={14} className="shrink-0" />
+                {!isSidebarCollapsed && <span>Mô Tả Thành Phần</span>}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* User / Connection Status */}
@@ -2631,7 +2658,7 @@ YÊU CẦU PROMPT:
         {/* Collapse Toggle */}
         <button 
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-bg-tertiary/50 border border-white/5 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:border-accent-primary/50 transition-colors z-30 shadow-sm"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-tertiary/50 border border-white/5 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:border-accent-primary/50 transition-colors z-30 shadow-sm"
         >
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -3180,11 +3207,11 @@ YÊU CẦU PROMPT:
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent">
                 <AnimatePresence>
-                  {logs.map((log, i) => (
+                  {logs.map((log) => (
                     <motion.div 
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      key={i} 
+                      key={log.id} 
                       className="flex gap-3 hover:bg-[#1C1C2A] px-2 py-1 rounded transition-colors"
                     >
                       <span className="text-text-muted shrink-0 select-none">[{log.time}]</span>
@@ -3808,7 +3835,7 @@ YÊU CẦU PROMPT:
                     </div>
                     <div className="space-y-2">
                       {config.KNOWLEDGE_BASE_LINKS.map((link, idx) => (
-                        <div key={idx} className="flex gap-2">
+                        <div key={`kb-link-${idx}`} className="flex gap-2">
                           <input 
                             type="url" 
                             value={link} 
