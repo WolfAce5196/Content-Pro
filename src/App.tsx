@@ -2015,23 +2015,12 @@ YÊU CẦU PROMPT:
             while (imageRetries <= maxImageRetries) {
               try {
                 imageResponse = await ai.models.generateContent({
-                  model: 'gemini-3.1-flash-image-preview',
+                  model: 'gemini-2.5-flash-image',
                   contents: { parts },
                   config: {
                     imageConfig: {
-                      aspectRatio: (brief.mediaSize || "1:1") as any,
-                      imageSize: "1K"
-                    },
-                    tools: brief.mediaReference && !brief.mediaReference.startsWith('data:') ? [
-                      {
-                        googleSearch: {
-                          searchTypes: {
-                            webSearch: {},
-                            imageSearch: {},
-                          }
-                        },
-                      },
-                    ] : undefined,
+                      aspectRatio: (brief.mediaSize || "1:1") as any
+                    }
                   }
                 });
                 break;
@@ -2216,13 +2205,18 @@ YÊU CẦU PROMPT:
     
     // Use the latest API Key from environment if available (for paid models)
     const apiKey = process.env.API_KEY || config.GEMINI_API_KEY;
-    const ai = new GoogleGenAI({ apiKey });
+    
+    // Removed mandatory paid API key check for free tier compatibility
+    
     let count = 0;
     
     const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
 
     try {
       for (const brief of selectedBriefs) {
+        // Re-initialize AI instance inside the loop
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || config.GEMINI_API_KEY });
+        
         if (stopProcessingRef.current) break;
         
         while (isPaused) {
@@ -2286,12 +2280,11 @@ YÊU CẦU PROMPT:
             while (imageRetries <= maxImageRetries) {
               try {
                 imageResponse = await ai.models.generateContent({
-                  model: 'gemini-3.1-flash-image-preview',
+                  model: 'gemini-2.5-flash-image',
                   contents: { parts: [{ text: imagePrompt }] },
                   config: {
                     imageConfig: {
-                      aspectRatio: (brief.mediaSize || "1:1") as any,
-                      imageSize: "1K"
+                      aspectRatio: (brief.mediaSize || "1:1") as any
                     }
                   }
                 });

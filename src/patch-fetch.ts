@@ -61,24 +61,24 @@ const patchFetch = (target: any, name: string) => {
 };
 
 // Apply patch to common globals
-if (typeof window !== 'undefined') patchFetch(window, 'window');
-if (typeof self !== 'undefined') patchFetch(self, 'self');
-if (typeof globalThis !== 'undefined') patchFetch(globalThis, 'globalThis');
+// if (typeof window !== 'undefined') patchFetch(window, 'window');
+// if (typeof self !== 'undefined') patchFetch(self, 'self');
+// if (typeof globalThis !== 'undefined') patchFetch(globalThis, 'globalThis');
 
 // Also try to patch the prototype if possible
-if (typeof Window !== 'undefined' && Window.prototype) {
-  patchFetch(Window.prototype, 'Window.prototype');
-}
+// if (typeof Window !== 'undefined' && Window.prototype) {
+//   patchFetch(Window.prototype, 'Window.prototype');
+// }
 
 // Test the patch
-try {
-  if (typeof window !== 'undefined') {
-    const oldFetch = window.fetch;
-    window.fetch = oldFetch;
-    console.log('[FetchPatch] Test successful: window.fetch is writable');
-  }
-} catch (e) {
-  console.error('[FetchPatch] Test failed: window.fetch is still not writable:', e);
-}
+// try {
+//   if (typeof window !== 'undefined') {
+//     const oldFetch = window.fetch;
+//     window.fetch = oldFetch;
+//     console.log('[FetchPatch] Test successful: window.fetch is writable');
+//   }
+// } catch (e) {
+//   console.error('[FetchPatch] Test failed: window.fetch is still not writable:', e);
+// }
 
 export {};
