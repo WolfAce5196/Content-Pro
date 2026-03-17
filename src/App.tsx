@@ -2214,7 +2214,9 @@ YÊU CẦU PROMPT:
     stopProcessingRef.current = false;
     setProgress({ current: 0, total: selectedIds.size, task: 'Tạo & Upload Media' });
     
-    const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
+    // Use the latest API Key from environment if available (for paid models)
+    const apiKey = process.env.API_KEY || config.GEMINI_API_KEY;
+    const ai = new GoogleGenAI({ apiKey });
     let count = 0;
     
     const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
@@ -2237,34 +2239,77 @@ YÊU CẦU PROMPT:
           if (!currentBase64 && brief.mediaFormat !== 'Video') {
             addLog(`[1/2] Đang tạo ảnh AI cho dòng ${brief.rowIndex}...`, 'info');
             
-            // Generate prompt
-            const promptResponse = await ai.models.generateContent({
-              model: 'gemini-3-flash-preview',
-              contents: `Tạo PROMPT tiếng Anh chi tiết để AI tạo ảnh marketing cho brief: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}. Tỉ lệ: ${brief.mediaSize || '1:1'}.`
-            });
-            const imagePrompt = promptResponse.text || 'A beautiful marketing image';
+            // Step A: Generate Prompt with Retry
+            let imagePrompt = 'A beautiful marketing image';
+            let promptRetries = 0;
+            const maxPromptRetries = 2;
 
-            // Generate image
-            const imageResponse = await ai.models.generateContent({
-              model: 'gemini-3.1-flash-image-preview',
-              contents: { parts: [{ text: imagePrompt }] },
-              config: {
-                imageConfig: {
-                  aspectRatio: (brief.mediaSize || "1:1") as any,
-                  imageSize: "1K"
-                }
+            while (promptRetries <= maxPromptRetries) {
+              try {
+                const promptResponse = await ai.models.generateContent({
+                  model: 'gemini-3-flash-preview',
+                  contents: `Tạo PROMPT tiếng Anh chi tiết để AI tạo ảnh marketing cho brief: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}. Tỉ lệ: ${brief.mediaSize || '1:1'}.`
+                });
+                imagePrompt = promptResponse.text || 'A beautiful marketing image';
+                break;
+              } catch (pErr: any) {
+                if (promptRetries === maxPromptRetries) throw pErr;
+                promptRetries++;
+                addLog(`Thử lại tạo prompt lần ${promptRetries}...`, 'info');
+                await new Promise(r => setTimeout(r, 2000 * promptRetries));
               }
-            });
+            }
+
+            // Step B: Generate Image with Retry
+            let imageRetries = 0;
+            const maxImageRetries = 3;
+            let imageResponse: any = null;
+
+            while (imageRetries <= maxImageRetries) {
+              try {
+                imageResponse = await ai.models.generateContent({
+                  model: 'gemini-3.1-flash-image-preview',
+                  contents: { parts: [{ text: imagePrompt }] },
+                  config: {
+                    imageConfig: {
+                      aspectRatio: (brief.mediaSize || "1:1") as any,
+                      imageSize: "1K"
+                    }
+                  }
+                });
+                break;
+              } catch (iErr: any) {
+                if (iErr.message?.includes('429') || iErr.message?.includes('quota')) {
+                  addLog(`Hết hạn mức API hoặc quá tải. Đang chờ...`, 'info');
+                  await new Promise(r => setTimeout(r, 10000));
+                }
+                if (imageRetries === maxImageRetries) throw iErr;
+                imageRetries++;
+                addLog(`Thử lại tạo ảnh lần ${imageRetries}...`, 'info');
+                await new Promise(r => setTimeout(r, 3000 * imageRetries));
+              }
+            }
             
-            currentBase64 = imageResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-            if (!currentBase64) throw new Error("Không tạo được ảnh AI.");
+            const candidate = imageResponse?.candidates?.[0];
+            currentBase64 = candidate?.content?.parts?.find((p: any) => p.inlineData)?.inlineData?.data;
+            
+            if (!currentBase64) {
+              const finishReason = candidate?.finishReason;
+              if (finishReason === 'SAFETY') {
+                throw new Error('Bị chặn do vi phạm chính sách an toàn (Safety Filter).');
+              } else if (finishReason === 'RECITATION') {
+                throw new Error('Bị chặn do vi phạm bản quyền (Recitation Filter).');
+              } else {
+                throw new Error(`Không nhận được dữ liệu ảnh. Lý do: ${finishReason || 'Không xác định'}.`);
+              }
+            }
             
             // Update state with base64
             setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageBase64: currentBase64, status: 'image_generated' } : b));
           }
 
           // 2. Upload if we have base64
-          if (currentBase64 && brief.mediaFormat !== 'Video') {
+          if (currentBase64 && brief.mediaFormat !== 'Video' && !currentImageUrl) {
             addLog(`[2/2] Đang upload ảnh cho dòng ${brief.rowIndex}...`, 'info');
             const formData = new FormData();
             formData.append('image', currentBase64);
@@ -2283,13 +2328,12 @@ YÊU CẦU PROMPT:
               throw new Error(data.error?.message || "Upload thất bại.");
             }
           } else if (brief.mediaFormat === 'Video') {
-            addLog(`Đang xử lý Video cho dòng ${brief.rowIndex}...`, 'info');
-            // Re-use video logic if needed, but for now focus on images as requested
-            await generateImage(true); 
+            addLog(`Tính năng Video hàng loạt đang được cập nhật...`, 'info');
           }
 
+          // Delay between briefs to avoid rate limits
           if (count < selectedBriefs.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
           }
         } catch (err: any) {
           addLog(`Lỗi dòng ${brief.rowIndex}: ${err.message}`, 'error');
