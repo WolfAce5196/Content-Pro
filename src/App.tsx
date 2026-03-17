@@ -882,13 +882,9 @@ export default function App() {
     setSelectedIds(new Set([briefId]));
     
     // Determine what failed
-    // If it has no content, retry content
-    // If it has content but no image, retry image
-    if (!brief.content) {
-      await generateContent();
-    } else {
-      await generateImage();
-    }
+    // Luôn cho phép retry cả content và image
+    await generateContent();
+    await generateImage();
     
     // Restore selection
     setSelectedIds(currentSelected);
@@ -3125,11 +3121,12 @@ YÊU CẦU PROMPT:
                         checked={filteredBriefs.length > 0 && Array.from(selectedIds).filter(id => filteredBriefs.some(b => b.id === id)).length === filteredBriefs.length}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            const newSet = new Set(selectedIds);
-                            filteredBriefs.forEach(b => newSet.add(b.id));
+                            // Chỉ chọn các brief trong bộ lọc hiện tại, xóa hết các brief khác
+                            const newSet = new Set(filteredBriefs.map(b => b.id));
                             setSelectedIds(newSet);
                             setIsWorkspaceCollapsed(false);
                           } else {
+                            // Chỉ xóa các brief trong bộ lọc hiện tại
                             const newSet = new Set(selectedIds);
                             filteredBriefs.forEach(b => newSet.delete(b.id));
                             setSelectedIds(newSet);
