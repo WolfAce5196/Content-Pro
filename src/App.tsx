@@ -446,60 +446,6 @@ const WorkspacePanel = ({
   );
 };
 
-const ContentDetailModal = ({ brief, onClose }: { brief: Brief, onClose: () => void }) => {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-bg-secondary w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/5"
-      >
-        <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-bg-tertiary/50">
-          <h3 className="font-bold text-base text-text-primary">Chi tiết nội dung & Ảnh (Dòng {brief.rowIndex})</h3>
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-secondary rounded-lg transition-colors">
-            <X size={16} />
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {/* Content Area */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[11px] font-bold text-accent-primary uppercase tracking-widest">Nội dung bài viết</h4>
-              <button 
-                onClick={() => navigator.clipboard.writeText(brief.content)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 text-accent-primary rounded-lg text-[11px] font-bold hover:bg-accent-primary/20 transition-all"
-              >
-                <Download size={12} /> Copy Content
-              </button>
-            </div>
-            <div className="bg-bg-tertiary/30 p-6 rounded-xl border border-white/5 text-text-primary whitespace-pre-wrap leading-relaxed text-sm font-sans">
-              {brief.content || <span className="text-text-muted italic">Chưa có nội dung...</span>}
-            </div>
-          </div>
-
-          {/* Image Area */}
-          <div className="space-y-4">
-            <h4 className="text-[11px] font-bold text-accent-primary uppercase tracking-widest">Hình ảnh minh họa</h4>
-            <div className="w-full aspect-video bg-bg-tertiary/30 rounded-xl border border-white/5 overflow-hidden">
-              {brief.imageBase64 ? (
-                <img src={`data:image/jpeg;base64,${brief.imageBase64}`} className="w-full h-full object-contain" alt="AI" />
-              ) : brief.imageUrl ? (
-                <img src={brief.imageUrl} className="w-full h-full object-contain" alt="Media" />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-text-muted">
-                  <ImageIcon size={48} className="opacity-20 mb-2" />
-                  <p className="text-xs">Chưa có ảnh minh họa</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
 const PreviewPanel = ({ 
   brief, 
   updateBrief, 
@@ -853,7 +799,6 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [availableTabs, setAvailableTabs] = useState<{id: number, title: string}[]>([]);
   const [isFetchingTabs, setIsFetchingTabs] = useState(false);
-  const [contentDetailBrief, setContentDetailBrief] = useState<Brief | null>(null);
   const [previewMedia, setPreviewMedia] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
   const [availableSpreadsheets, setAvailableSpreadsheets] = useState<{id: string, name: string}[]>([]);
   const [isFetchingSpreadsheets, setIsFetchingSpreadsheets] = useState(false);
@@ -3184,7 +3129,7 @@ YÊU CẦU PROMPT:
             <WorkspacePanel 
               selectedBriefs={briefs.filter(b => selectedIds.has(b.id))}
               onClose={() => setSelectedIds(new Set())}
-              onContentClick={(brief) => setContentDetailBrief(brief)}
+              onContentClick={(brief) => setActiveBriefId(brief.id)}
               onImageClick={(brief) => setPreviewMedia({ 
                 url: brief.imageBase64 ? `data:image/jpeg;base64,${brief.imageBase64}` : (brief.imageUrl || ''), 
                 type: brief.mediaFormat === 'Video' ? 'video' : 'image' 
@@ -3247,7 +3192,7 @@ YÊU CẦU PROMPT:
 
       {/* Preview Panel Modal */}
       <AnimatePresence>
-        {activeBriefId && selectedIds.size === 0 && (
+        {activeBriefId && (
           <PreviewPanel 
             brief={briefs.find(b => b.id === activeBriefId)!} 
             updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}
@@ -4003,14 +3948,6 @@ function doGet(e) {
         )}
         <HistoryModal />
         <MediaPreviewModal />
-        <AnimatePresence>
-          {contentDetailBrief && (
-            <ContentDetailModal 
-              brief={contentDetailBrief} 
-              onClose={() => setContentDetailBrief(null)} 
-            />
-          )}
-        </AnimatePresence>
       </AnimatePresence>
     </div>
   );
