@@ -5,43 +5,58 @@ const patchFetch = (target: any, name: string) => {
   try {
     if (!target) return;
     
-    // Check if fetch is already writable
     const descriptor = Object.getOwnPropertyDescriptor(target, 'fetch') || 
                        Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target) || {}, 'fetch');
     
-    if (descriptor && (!descriptor.writable || descriptor.get)) {
+    if (descriptor && (!descriptor.writable || descriptor.get || !descriptor.configurable)) {
       console.log(`[FetchPatch] Patching fetch on ${name}. Configurable: ${descriptor.configurable}`);
       
-      let currentFetch = target.fetch;
+      const originalFetch = target.fetch;
       
       try {
+        // Try to redefine it as a simple writable property
         Object.defineProperty(target, 'fetch', {
-          get() { return currentFetch; },
-          set(v) { 
-            console.log(`[FetchPatch] fetch on ${name} is being set to a new value`);
-            currentFetch = v; 
-          },
+          value: originalFetch,
+          writable: true,
           configurable: true,
           enumerable: true
         });
-        console.log(`[FetchPatch] Successfully patched ${name}.fetch with getter/setter`);
+        console.log(`[FetchPatch] Successfully made ${name}.fetch writable via value descriptor`);
       } catch (e) {
-        console.warn(`[FetchPatch] Failed to defineProperty on ${name}.fetch:`, e);
+        console.warn(`[FetchPatch] Failed to make ${name}.fetch writable via value, trying getter/setter:`, e);
         
-        // If defineProperty fails, try deleting and assigning if configurable
-        if (descriptor.configurable) {
-          try {
-            delete target.fetch;
-            target.fetch = currentFetch;
-            console.log(`[FetchPatch] Successfully patched ${name}.fetch via delete/assign`);
-          } catch (e2) {
-            console.error(`[FetchPatch] Final attempt failed for ${name}.fetch:`, e2);
+        // Fallback to getter/setter if value redefinition fails
+        let currentFetch = originalFetch;
+        try {
+          Object.defineProperty(target, 'fetch', {
+            get() { return currentFetch; },
+            set(v) { currentFetch = v; },
+            configurable: true,
+            enumerable: true
+          });
+          console.log(`[FetchPatch] Successfully made ${name}.fetch writable via getter/setter`);
+        } catch (e2) {
+          console.error(`[FetchPatch] All attempts to patch ${name}.fetch failed:`, e2);
+          
+          // Last resort: if it's configurable, try to delete and re-assign
+          if (descriptor.configurable) {
+            try {
+              delete target.fetch;
+              target.fetch = originalFetch;
+              console.log(`[FetchPatch] Successfully patched ${name}.fetch via delete and re-assign`);
+            } catch (e3) {
+              console.error(`[FetchPatch] Delete and re-assign also failed for ${name}.fetch:`, e3);
+            }
           }
         }
       }
+    } else if (!descriptor) {
+      // If it doesn't exist on the target or prototype, we might want to ensure it's writable if added later
+      // but usually we just care about existing fetch
+      console.log(`[FetchPatch] No fetch descriptor found on ${name}, skipping.`);
     }
   } catch (e) {
-    console.warn(`[FetchPatch] Error patching fetch on ${name}:`, e);
+    console.warn(`[FetchPatch] Error in patchFetch for ${name}:`, e);
   }
 };
 
@@ -53,6 +68,17 @@ if (typeof globalThis !== 'undefined') patchFetch(globalThis, 'globalThis');
 // Also try to patch the prototype if possible
 if (typeof Window !== 'undefined' && Window.prototype) {
   patchFetch(Window.prototype, 'Window.prototype');
+}
+
+// Test the patch
+try {
+  if (typeof window !== 'undefined') {
+    const oldFetch = window.fetch;
+    window.fetch = oldFetch;
+    console.log('[FetchPatch] Test successful: window.fetch is writable');
+  }
+} catch (e) {
+  console.error('[FetchPatch] Test failed: window.fetch is still not writable:', e);
 }
 
 export {};

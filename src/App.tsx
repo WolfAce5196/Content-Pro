@@ -203,7 +203,7 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
     <div className="relative w-full" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary/50 border border-white/5 text-text-primary rounded-lg text-xs hover:border-accent-primary/50 transition-colors w-full shadow-sm"
+        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary/50 border border-white/5 text-text-primary rounded-lg text-[13px] hover:border-accent-primary/50 transition-colors w-full shadow-sm"
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {Icon && <Icon size={14} className="text-text-muted shrink-0" />}
@@ -221,8 +221,8 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
             className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-white/5 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
           >
             <div className="p-1.5 space-y-0.5">
-              {options.map((opt: string) => (
-                <label key={opt} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
+              {options.map((opt: string, idx: number) => (
+                <label key={`${opt}-${idx}`} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
                   <div className="relative flex items-center justify-center">
                     <input 
                       type="checkbox" 
@@ -239,11 +239,11 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
                       <svg className={`w-3 h-3 text-white transition-transform ${selected.includes(opt) ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     </div>
                   </div>
-                  <span className="text-xs text-text-primary truncate group-hover:text-white transition-colors">{opt}</span>
+                  <span className="text-[13px] text-text-primary truncate group-hover:text-white transition-colors">{opt}</span>
                 </label>
               ))}
               {options.length === 0 && (
-                <div className="p-3 text-xs text-text-muted text-center italic">Không có cột nào</div>
+                <div className="p-3 text-[13px] text-text-muted text-center italic">Không có cột nào</div>
               )}
             </div>
           </motion.div>
@@ -271,7 +271,7 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
     <div className="relative w-full" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary/50 border border-white/5 text-text-primary rounded-lg text-xs hover:border-accent-primary/50 transition-colors w-full shadow-sm"
+        className="flex items-center justify-between gap-2 px-3 py-2 bg-bg-tertiary/50 border border-white/5 text-text-primary rounded-lg text-[13px] hover:border-accent-primary/50 transition-colors w-full shadow-sm"
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {Icon && <Icon size={14} className="text-text-muted shrink-0" />}
@@ -289,18 +289,18 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
             className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-white/5 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
           >
             <div className="p-1.5 space-y-0.5">
-              {options.map((opt: string) => (
+              {options.map((opt: string, idx: number) => (
                 <button 
-                  key={opt} 
+                  key={`${opt}-${idx}`} 
                   onClick={() => { onChange(opt); setIsOpen(false); }}
                   className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer transition-colors ${selected === opt ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-primary'}`}
                 >
-                  <span className="text-xs truncate">{opt}</span>
+                  <span className="text-[13px] truncate">{opt}</span>
                   {selected === opt && <CheckCircle2 size={14} className="ml-auto shrink-0" />}
                 </button>
               ))}
               {options.length === 0 && (
-                <div className="p-3 text-xs text-text-muted text-center italic">Không có cột nào</div>
+                <div className="p-3 text-[13px] text-text-muted text-center italic">Không có cột nào</div>
               )}
             </div>
           </motion.div>
@@ -426,9 +426,9 @@ const WorkspacePanel = ({
       </div>
 
       <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent ${isCollapsed ? 'hidden' : ''}`}>
-        {selectedBriefs.map(brief => (
+        {selectedBriefs.map((brief, idx) => (
           <WorkspaceItem 
-            key={brief.id} 
+            key={`${brief.id}-${idx}`} 
             brief={brief} 
             onContentClick={() => onContentClick(brief)}
             onImageClick={() => onImageClick(brief)}
@@ -511,12 +511,12 @@ const PreviewPanel = ({
             <div className="space-y-6">
               {/* Original Brief Data */}
               <div>
-                <h4 className="text-[11px] font-bold text-accent-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h4 className="text-[10px] font-display font-black text-accent-primary uppercase tracking-widest mb-4 flex items-center gap-2">
                   <FileText size={14} /> Dữ liệu đầu vào
                 </h4>
                 <div className="grid grid-cols-1 gap-3 bg-bg-tertiary/30 p-4 rounded-xl border border-white/5">
-                  {Object.entries(brief.briefData).map(([key, value]) => (
-                    <div key={key} className="flex flex-col gap-1 text-xs">
+                  {Object.entries(brief.briefData).map(([key, value], idx) => (
+                    <div key={`${key}-${idx}`} className="flex flex-col gap-1 text-xs">
                       <span className="font-medium text-text-secondary">{key}</span>
                       <span className="text-text-primary bg-bg-secondary p-2 rounded-lg border border-white/5">{value || <span className="text-text-muted italic">Trống</span>}</span>
                     </div>
@@ -526,7 +526,7 @@ const PreviewPanel = ({
 
               {/* New Media Fields */}
               <div>
-                <h4 className="text-[11px] font-bold text-accent-primary uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h4 className="text-[10px] font-display font-black text-accent-primary uppercase tracking-widest mb-4 flex items-center gap-2">
                   <ImageIcon size={14} /> Cấu hình Media
                 </h4>
                 <div className="space-y-4 bg-bg-tertiary/30 p-4 rounded-xl border border-white/5">
@@ -559,8 +559,8 @@ const PreviewPanel = ({
                         onChange={e => updateBrief(brief.id, { mediaSize: e.target.value })}
                         className="w-full p-2 bg-bg-secondary border border-white/5 rounded-lg text-xs text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none"
                       >
-                        {mediaSizes[brief.mediaFormat || 'Ảnh'].map(size => (
-                          <option key={size} value={size}>{size}</option>
+                        {mediaSizes[brief.mediaFormat || 'Ảnh'].map((size, idx) => (
+                          <option key={`${size}-${idx}`} value={size}>{size}</option>
                         ))}
                       </select>
                     </div>
@@ -742,8 +742,8 @@ const PreviewPanel = ({
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {brief.history.map((item) => (
-                          <div key={item.id} className="bg-bg-secondary border border-white/5 rounded-xl p-5 space-y-4 hover:border-accent-primary/30 transition-all group shadow-sm">
+                        {brief.history.map((item, idx) => (
+                          <div key={`${item.id}-${idx}`} className="bg-bg-secondary border border-white/5 rounded-xl p-5 space-y-4 hover:border-accent-primary/30 transition-all group shadow-sm">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-bold text-text-muted uppercase bg-bg-tertiary/50 px-2.5 py-1 rounded border border-white/5">
@@ -944,9 +944,9 @@ export default function App() {
     const parts = msg.split(urlRegex);
     return parts.map((part, i) => {
       if (part.match(urlRegex)) {
-        return <a key={i} href={part} target="_blank" rel="noreferrer" className="underline text-accent-primary break-all">{part}</a>;
+        return <a key={`log-url-${i}`} href={part} target="_blank" rel="noreferrer" className="underline text-accent-primary break-all">{part}</a>;
       }
-      return part;
+      return <span key={`log-text-${i}`}>{part}</span>;
     });
   };
 
@@ -990,7 +990,7 @@ export default function App() {
             {brief.history && brief.history.length > 0 ? (
               <div className="space-y-4">
                 {brief.history.slice().reverse().map((item, idx) => (
-                  <div key={item.id} className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle hover:border-accent-primary/50 transition-all group">
+                  <div key={`${item.id}-${idx}`} className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle hover:border-accent-primary/50 transition-all group">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-accent-primary bg-accent-primary/10 px-2 py-1 rounded">v{brief.history.length - idx}</span>
@@ -1286,7 +1286,7 @@ export default function App() {
       }
       
       const data = await res.json();
-      const sheetHeaders = (data.values?.[0] || []).map((h: any) => String(h).trim());
+      const sheetHeaders = Array.from(new Set((data.values?.[0] || []).map((h: any) => String(h).trim())));
       setAvailableHeaders(sheetHeaders);
       
       // Auto-map if current config is not in headers
@@ -1796,7 +1796,7 @@ ${toneInstruction}
           setBriefs(prev => prev.map(b => {
             if (b.id === brief.id) {
               const newHistoryItem: HistoryItem = {
-                id: Math.random().toString(36).substr(2, 9),
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
                 content,
                 imageUrl: b.imageUrl,
                 imageBase64: b.imageBase64,
@@ -1867,7 +1867,12 @@ ${toneInstruction}
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || config.GEMINI_API_KEY });
     let count = 0;
     
-    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+    const selectedBriefs = Array.from(selectedIds)
+      .map(id => briefs.find(b => b.id === id))
+      .filter(Boolean) as Brief[];
+
+    // Sắp xếp theo rowIndex để xử lý tuần tự đúng thứ tự
+    selectedBriefs.sort((a, b) => a.rowIndex - b.rowIndex);
 
     try {
       for (const brief of selectedBriefs) {
@@ -1923,7 +1928,7 @@ CONTENT CHI TIẾT: ${brief.content || ''}`;
               setBriefs(prev => prev.map(b => {
                 if (b.id === brief.id) {
                   const newHistoryItem: HistoryItem = {
-                    id: Math.random().toString(36).substr(2, 9),
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
                     content: b.content,
                     imageUrl: videoUrl,
                     timestamp: new Date().toISOString(),
@@ -2031,10 +2036,15 @@ YÊU CẦU PROMPT:
                 });
                 break;
               } catch (apiErr: any) {
+                const errorMsg = apiErr.message || '';
+                const isRateLimit = errorMsg.includes('429') || errorMsg.toLowerCase().includes('rate limit') || errorMsg.toLowerCase().includes('too many requests');
+                
                 imageRetries++;
                 if (imageRetries > maxImageRetries) throw apiErr;
-                addLog(`Lỗi sinh ảnh dòng ${brief.rowIndex}, thử lại lần ${imageRetries}...`, 'info');
-                await new Promise(resolve => setTimeout(resolve, 3000 * imageRetries));
+                
+                const waitTime = isRateLimit ? 10000 * imageRetries : 5000 * imageRetries;
+                addLog(`Lỗi sinh ảnh dòng ${brief.rowIndex} (${isRateLimit ? 'Rate Limit' : 'API Error'}), thử lại sau ${waitTime/1000}s...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, waitTime));
               }
             }
             
@@ -2045,7 +2055,7 @@ YÊU CẦU PROMPT:
               setBriefs(prev => prev.map(b => {
                 if (b.id === brief.id) {
                   const newHistoryItem: HistoryItem = {
-                    id: Math.random().toString(36).substr(2, 9),
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
                     content: b.content,
                     imageUrl: b.imageUrl,
                     imageBase64: base64Data,
@@ -2077,9 +2087,10 @@ YÊU CẦU PROMPT:
             }
           }
           
-          // Thêm khoảng nghỉ ngắn giữa các dòng để tránh rate limit
+          // Thêm khoảng nghỉ để tránh rate limit (ảnh tốn nhiều tài nguyên hơn content)
           if (count < selectedBriefs.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const delay = 4000; // Tăng lên 4s giữa các dòng
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         } catch (err: any) {
           addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
@@ -2315,7 +2326,7 @@ YÊU CẦU PROMPT:
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         const headerData = await headerRes.json();
-        const sheetHeaders = (headerData.values?.[0] || []).map((h: any) => String(h).trim());
+        const sheetHeaders = Array.from(new Set((headerData.values?.[0] || []).map((h: any) => String(h).trim())));
         
         const contentColIdx = sheetHeaders.indexOf(config.COL_CONTENT);
         const imageColIdx = sheetHeaders.indexOf(config.COL_IMAGE);
@@ -2509,8 +2520,7 @@ YÊU CẦU PROMPT:
           </div>
           {!isSidebarCollapsed && (
             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="ml-3 flex flex-col">
-              <span className="font-display font-bold text-lg tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">AI STUDIO</span>
-              <span className="text-[9px] font-bold text-accent-primary uppercase tracking-[0.2em] mt-1">Neural Engine v2</span>
+              <span className="font-logo font-black text-2xl uppercase tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/40">AI STUDIO</span>
             </motion.div>
           )}
         </div>
@@ -2520,7 +2530,7 @@ YÊU CẦU PROMPT:
           {!isSidebarCollapsed && (
             <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Cấu Hình Cột</h3>
+                <h3 className="text-[11px] font-display font-black text-text-muted uppercase tracking-widest">Cấu Hình Cột</h3>
                 <button 
                   onClick={fetchHeaders} 
                   disabled={isFetchingHeaders}
@@ -2532,19 +2542,19 @@ YÊU CẦU PROMPT:
               </div>
               <div className="space-y-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-medium text-text-secondary">Cột Brief (Đầu Vào)</label>
+                  <label className="text-[12px] font-medium text-text-secondary">Cột Brief (Đầu Vào)</label>
                   <MultiSelectDropdown options={availableHeaders} selected={config.COL_BRIEFS || []} onChange={(val: string[]) => setConfig({...config, COL_BRIEFS: val})} label="Chọn Cột..." icon={FileText} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-medium text-text-secondary">Giọng Điệu Content</label>
+                  <label className="text-[12px] font-medium text-text-secondary">Giọng Điệu Content</label>
                   <SingleSelectDropdown options={availableHeaders} selected={config.COL_TONE || ''} onChange={(val: string) => setConfig({...config, COL_TONE: val})} label="Chọn Cột..." icon={MessageSquare} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-medium text-text-secondary">Cột Content (Đầu Ra)</label>
+                  <label className="text-[12px] font-medium text-text-secondary">Cột Content (Đầu Ra)</label>
                   <SingleSelectDropdown options={availableHeaders} selected={config.COL_CONTENT} onChange={(val: string) => setConfig({...config, COL_CONTENT: val})} label="Chọn Cột..." icon={Edit3} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-medium text-text-secondary">Cột Link Ảnh (Đầu Ra)</label>
+                  <label className="text-[12px] font-medium text-text-secondary">Cột Link Ảnh (Đầu Ra)</label>
                   <SingleSelectDropdown options={availableHeaders} selected={config.COL_IMAGE} onChange={(val: string) => setConfig({...config, COL_IMAGE: val})} label="Chọn Cột..." icon={ImageIcon} />
                 </div>
               </div>
@@ -2554,22 +2564,22 @@ YÊU CẦU PROMPT:
           {/* Setting Section */}
           <div className={`space-y-4 ${!isSidebarCollapsed ? 'pt-4 border-t border-white/5' : ''}`}>
             {!isSidebarCollapsed && (
-              <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider px-1">Setting</h3>
+              <h3 className="text-[11px] font-display font-black text-text-muted uppercase tracking-widest px-1">Setting</h3>
             )}
             <div className="space-y-1">
-              <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
                 <Settings size={14} className="shrink-0" />
                 {!isSidebarCollapsed && <span>Cấu Hình Hệ Thống</span>}
               </button>
-              <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <button onClick={() => setIsLogExpanded(!isLogExpanded)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${isLogExpanded ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
                 <Terminal size={14} className="shrink-0" />
                 {!isSidebarCollapsed && <span>Hệ Thống Logs</span>}
               </button>
-              <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <button onClick={() => setShowGuide(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${showGuide ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
                 <BookOpen size={14} className="shrink-0" />
                 {!isSidebarCollapsed && <span>Tài Liệu Hướng Dẫn</span>}
               </button>
-              <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
+              <button onClick={() => setShowComponentDesc(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${showComponentDesc ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
                 <Info size={14} className="shrink-0" />
                 {!isSidebarCollapsed && <span>Mô Tả Thành Phần</span>}
               </button>
@@ -2638,15 +2648,15 @@ YÊU CẦU PROMPT:
         <header className="glass-panel sticky top-0 z-20 h-16 flex items-center justify-between px-6 border-b border-white/5">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
-              <h2 className="text-xl font-bold text-text-primary tracking-tight">Dashboard</h2>
-              <p className="text-[9px] text-text-muted font-bold uppercase tracking-[0.1em] mt-0.5">AI Marketing Content Engine</p>
+              <h2 className="text-2xl font-logo font-black text-text-primary tracking-tight uppercase">Dashboard</h2>
+              <p className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] mt-0.5">AI Marketing Content Engine</p>
             </div>
             
             <div className="h-8 w-px bg-white/5 mx-1"></div>
             <div className="flex items-center gap-3">
               {/* Spreadsheet Selection */}
-              <div className="flex items-center gap-2 bg-bg-tertiary/50 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/5 shadow-sm hover:border-accent-primary/40 transition-all group">
-                <span className="text-[10px] text-accent-primary font-bold uppercase tracking-widest">File:</span>
+              <div className="flex items-center gap-2 bg-bg-tertiary/80 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/10 shadow-sm hover:border-accent-primary/40 transition-all group">
+                <span className="text-[12px] text-accent-primary font-bold uppercase tracking-widest">File:</span>
                 <div className="relative">
                   <select 
                     value={config.GOOGLE_SHEET_ID} 
@@ -2664,13 +2674,13 @@ YÊU CẦU PROMPT:
                         }
                       }
                     }}
-                    className="bg-transparent text-[11px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors max-w-[180px] truncate disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent text-[13px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors max-w-[180px] truncate disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="" className="bg-bg-tertiary text-text-primary">
                       {!accessToken ? "-- Chưa đăng nhập --" : "-- Chọn File --"}
                     </option>
-                    {availableSpreadsheets.map(ss => (
-                      <option key={ss.id} value={ss.id} className="bg-bg-tertiary text-text-primary">{ss.name}</option>
+                    {availableSpreadsheets.map((ss, idx) => (
+                      <option key={`${ss.id}-${idx}`} value={ss.id} className="bg-bg-tertiary text-text-primary">{ss.name}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover:text-accent-primary transition-colors" size={12} />
@@ -2678,8 +2688,8 @@ YÊU CẦU PROMPT:
               </div>
 
               {/* Tab Selection */}
-              <div className="flex items-center gap-2 bg-bg-tertiary/50 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/5 shadow-sm hover:border-accent-primary/40 transition-all group">
-                <span className="text-[10px] text-accent-primary font-bold uppercase tracking-widest">Sheet:</span>
+              <div className="flex items-center gap-2 bg-bg-tertiary/80 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/10 shadow-sm hover:border-accent-primary/40 transition-all group">
+                <span className="text-[12px] text-accent-primary font-bold uppercase tracking-widest">Sheet:</span>
                 <div className="relative">
                   <select 
                     value={config.SHEET_GID} 
@@ -2696,13 +2706,13 @@ YÊU CẦU PROMPT:
                         }
                       }
                     }}
-                    className="bg-transparent text-[11px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-transparent text-[13px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="" className="bg-bg-tertiary text-text-primary">
                       {!config.GOOGLE_SHEET_ID ? "-- Trống --" : "-- Chọn Tab --"}
                     </option>
-                    {availableTabs.map(tab => (
-                      <option key={tab.id} value={tab.id} className="bg-bg-tertiary text-text-primary">{tab.title}</option>
+                    {availableTabs.map((tab, idx) => (
+                      <option key={`${tab.id}-${idx}`} value={tab.id} className="bg-bg-tertiary text-text-primary">{tab.title}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover:text-accent-primary transition-colors" size={12} />
@@ -2732,16 +2742,16 @@ YÊU CẦU PROMPT:
           {/* Table Area */}
           <div className="flex flex-col h-full border-r border-border-subtle flex-1 min-w-0 overflow-hidden">
             {/* Action Bar */}
-            <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0">
+            <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 bg-bg-tertiary/50 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">
+                <div className="flex items-center gap-2 bg-bg-tertiary/80 px-3 py-1.5 rounded-lg border border-white/10 shadow-inner">
                   <div className="w-2 h-2 rounded-full bg-accent-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]"></div>
-                  <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
-                    Đã chọn: <span className="text-accent-primary font-black ml-1">{selectedIds.size}</span>
+                  <span className="text-[12px] font-bold text-text-secondary uppercase tracking-widest">
+                    Đã chọn: <span className="text-sm font-black text-accent-primary ml-1">{selectedIds.size}</span>
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1 bg-bg-tertiary/50 p-1 rounded-xl border border-white/5 shadow-inner">
+                <div className="flex items-center gap-1 bg-bg-tertiary/80 p-1 rounded-xl border border-white/10 shadow-inner">
                   {[
                     { id: 'all', label: 'Tất Cả' },
                     { id: 'done', label: 'Đã Làm' },
@@ -2763,7 +2773,7 @@ YÊU CẦU PROMPT:
                           }
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === tab.id ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-muted hover:text-text-primary hover:bg-white/5'}`}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === tab.id ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
                     >
                       {tab.label}
                     </button>
@@ -2771,16 +2781,16 @@ YÊU CẦU PROMPT:
                 </div>
 
                 {selectedIds.size > 0 && (
-                  <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-text-muted hover:text-status-danger transition-colors font-medium">
+                  <button onClick={() => setSelectedIds(new Set())} className="text-[12px] text-text-muted hover:text-status-danger transition-colors font-bold uppercase tracking-widest">
                     Bỏ chọn
                   </button>
                 )}
               </div>
-              <div className="flex items-center bg-bg-tertiary/50 p-1 rounded-xl border border-white/5 shadow-inner">
+              <div className="flex items-center bg-bg-tertiary/80 p-1 rounded-xl border border-white/10 shadow-inner">
                 <button 
                   onClick={generateContent} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
                 >
                   {isProcessing && progress.task === 'Tạo Content' ? (
                     <>
@@ -2798,7 +2808,7 @@ YÊU CẦU PROMPT:
                 <button 
                   onClick={() => generateImage(true)} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
                 >
                   {isProcessing && progress.task === 'Tạo Ảnh AI' ? (
                     <>
@@ -2816,7 +2826,7 @@ YÊU CẦU PROMPT:
                 <button 
                   onClick={uploadImages} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
                 >
                   {isProcessing && progress.task === 'Upload Ảnh' ? (
                     <>
@@ -2834,7 +2844,7 @@ YÊU CẦU PROMPT:
                 <button 
                   onClick={processMediaCombined} 
                   disabled={isProcessing || selectedIds.size === 0} 
-                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group"
+                  className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group"
                   title="Tạo ảnh AI và Upload lên ImgBB trong 1 bước"
                 >
                   <Zap size={12} className="text-accent-primary group-hover:scale-110 transition-transform"/> Tạo & Lấy link Ảnh
@@ -2858,29 +2868,29 @@ YÊU CẦU PROMPT:
                       <span className="text-[8px] font-bold text-text-muted px-1.5 py-0.5 bg-bg-tertiary rounded-md">{progress.current}/{progress.total}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 bg-bg-tertiary/50 shadow-sm border border-white/5 rounded-lg px-2 py-1">
+                      <div className="flex items-center gap-3 bg-bg-tertiary shadow-md border border-white/10 rounded-xl px-3 py-1.5">
                         <button 
                           onClick={() => setIsPaused(!isPaused)}
-                          className="text-accent-primary hover:scale-110 transition-all flex items-center gap-1.5 font-bold text-[8px] tracking-wider"
+                          className="text-accent-primary hover:scale-110 transition-all flex items-center gap-2 font-bold text-[10px] tracking-wider"
                           title={isPaused ? "Tiếp tục" : "Tạm dừng"}
                         >
-                          {isPaused ? <Play size={12} fill="currentColor" /> : <div className="flex gap-0.5"><div className="w-0.5 h-3 bg-current rounded-full"></div><div className="w-0.5 h-3 bg-current rounded-full"></div></div>}
+                          {isPaused ? <Play size={14} fill="currentColor" /> : <div className="flex gap-1"><div className="w-1 h-3.5 bg-current rounded-full"></div><div className="w-1 h-3.5 bg-current rounded-full"></div></div>}
                           <span>{isPaused ? "TIẾP TỤC" : "TẠM DỪNG"}</span>
                         </button>
-                        <div className="w-px h-3 bg-white/10"></div>
+                        <div className="w-px h-4 bg-white/10 mx-1"></div>
                         <button 
                           onClick={() => {
                             stopProcessingRef.current = true;
                             setIsPaused(false);
                           }}
-                          className="text-status-danger hover:scale-110 transition-all flex items-center gap-1.5 font-bold text-[8px] tracking-wider"
+                          className="text-status-danger hover:scale-110 transition-all flex items-center gap-2 font-bold text-[10px] tracking-wider"
                           title="Dừng hẳn"
                         >
-                          <XCircle size={12} />
+                          <XCircle size={14} />
                           <span>DỪNG</span>
                         </button>
                       </div>
-                      <span className="text-xs font-black text-accent-primary tabular-nums">{Math.round((progress.current / progress.total) * 100)}%</span>
+                      <span className="text-sm font-black text-accent-primary tabular-nums">{Math.round((progress.current / progress.total) * 100)}%</span>
                     </div>
                   </div>
                   <div className="h-2 bg-bg-tertiary rounded-full overflow-hidden border border-white/5 p-0.5 shadow-inner">
@@ -2938,14 +2948,14 @@ YÊU CẦU PROMPT:
                 </thead>
                 <tbody>
                   <AnimatePresence>
-                    {filteredBriefs.map(brief => {
+                    {filteredBriefs.map((brief, idx) => {
                       const isProcessingThis = isProcessing && selectedIds.has(brief.id);
                       return (
                         <motion.tr 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            key={brief.id} 
+                            key={`${brief.id}-${idx}`} 
                             className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''} hover:bg-bg-tertiary/40 transition-colors`}>
                           
                           <td className="p-4 text-center rounded-l-2xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
@@ -3483,20 +3493,20 @@ YÊU CẦU PROMPT:
                       <h3 className="font-bold text-text-primary mb-1">Cấu Hình Cột</h3>
                       <div className="space-y-3 mt-2">
                         <div>
-                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Cột Brief</p>
-                          <p className="text-sm text-text-secondary">Chọn các cột chứa thông tin yêu cầu (ví dụ: Tên sản phẩm, Đặc điểm, Đối tượng). AI sẽ tổng hợp dữ liệu từ các cột này.</p>
+                          <p className="text-[14px] font-bold text-accent-primary uppercase tracking-wider">Cột Brief</p>
+                          <p className="text-base text-text-secondary">Chọn các cột chứa thông tin yêu cầu (ví dụ: Tên sản phẩm, Đặc điểm, Đối tượng). AI sẽ tổng hợp dữ liệu từ các cột này.</p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Giọng Điệu Content</p>
-                          <p className="text-sm text-text-secondary">Chọn cột quy định phong cách viết (ví dụ: Hài hước, Chuyên nghiệp, Đồng cảm). Giúp nội dung nhất quán với thương hiệu.</p>
+                          <p className="text-[14px] font-bold text-accent-primary uppercase tracking-wider">Giọng Điệu Content</p>
+                          <p className="text-base text-text-secondary">Chọn cột quy định phong cách viết (ví dụ: Hài hước, Chuyên nghiệp, Đồng cảm). Giúp nội dung nhất quán với thương hiệu.</p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Cột Content</p>
-                          <p className="text-sm text-text-secondary">Cột đích để hệ thống tự động điền nội dung chi tiết sau khi AI tạo xong. Giúp đồng bộ dữ liệu về Google Sheet.</p>
+                          <p className="text-[14px] font-bold text-accent-primary uppercase tracking-wider">Cột Content</p>
+                          <p className="text-base text-text-secondary">Cột đích để hệ thống tự động điền nội dung chi tiết sau khi AI tạo xong. Giúp đồng bộ dữ liệu về Google Sheet.</p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-accent-primary uppercase tracking-wider">Cột Link Ảnh</p>
-                          <p className="text-sm text-text-secondary">Cột đích để hệ thống tự động điền đường dẫn hình ảnh hoặc video sau khi tạo. Giúp quản lý tài nguyên media dễ dàng.</p>
+                          <p className="text-[14px] font-bold text-accent-primary uppercase tracking-wider">Cột Link Ảnh</p>
+                          <p className="text-base text-text-secondary">Cột đích để hệ thống tự động điền đường dẫn hình ảnh hoặc video sau khi tạo. Giúp quản lý tài nguyên media dễ dàng.</p>
                         </div>
                       </div>
                     </div>
@@ -3568,9 +3578,9 @@ YÊU CẦU PROMPT:
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-text-secondary mb-1.5">Gemini API Key</label>
+                  <label className="block text-[15px] font-semibold text-text-secondary mb-1.5">Gemini API Key</label>
                   <input type="password" value={config.GEMINI_API_KEY} onChange={e => setConfig({...config, GEMINI_API_KEY: e.target.value})} className="w-full p-2.5 bg-bg-tertiary border border-border-medium rounded-xl focus:ring-2 focus:ring-accent-primary focus:border-accent-primary transition-all outline-none text-text-primary placeholder:text-text-muted" placeholder="Nhập API Key..." />
-                  <details className="mt-2 text-xs text-text-muted group">
+                  <details className="mt-2 text-sm text-text-muted group">
                     <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none">
                       <ChevronDown size={12} className="group-open:rotate-180 transition-transform" />
                       Cách lấy Gemini API Key?
@@ -3615,7 +3625,7 @@ YÊU CẦU PROMPT:
                         </button>
                       </div>
 
-                      <details className="mt-3 text-[11px] text-text-muted group">
+                      <details className="mt-3 text-sm text-text-muted group">
                         <summary className="cursor-pointer hover:text-accent-primary flex items-center gap-1 list-none italic">
                           <ChevronDown size={10} className="group-open:rotate-180 transition-transform" />
                           Tại sao cần đăng nhập?
@@ -3627,8 +3637,8 @@ YÊU CẦU PROMPT:
                             <li>Đọc dữ liệu Brief từ các cột bạn đã chọn.</li>
                             <li>Ghi trực tiếp Content và Link ảnh vào Sheet mà không cần cấu hình kỹ thuật phức tạp.</li>
                           </ul>
-                          <p className="text-[10px] mt-2 italic">Chưa có Bảng tính? <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-accent-primary underline font-bold">Tạo Google Sheet mới ngay</a></p>
-                          <p className="text-[10px] mt-1">* Nếu gặp lỗi "unauthorized-domain", hãy sao chép tên miền trên và thêm vào "Authorized domains" trong Firebase Console.</p>
+                          <p className="text-xs mt-2 italic">Chưa có Bảng tính? <a href="https://sheets.new" target="_blank" rel="noreferrer" className="text-accent-primary underline font-bold">Tạo Google Sheet mới ngay</a></p>
+                          <p className="text-xs mt-1">* Nếu gặp lỗi "unauthorized-domain", hãy sao chép tên miền trên và thêm vào "Authorized domains" trong Firebase Console.</p>
                         </div>
                       </details>
                     </div>
@@ -3662,8 +3672,8 @@ YÊU CẦU PROMPT:
                                   className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
                                 >
                                   <option value="">-- Chọn một Bảng tính từ Drive --</option>
-                                  {availableSpreadsheets.map(ss => (
-                                    <option key={ss.id} value={ss.id}>{ss.name}</option>
+                                  {availableSpreadsheets.map((ss, idx) => (
+                                    <option key={`${ss.id}-${idx}`} value={ss.id}>{ss.name}</option>
                                   ))}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
@@ -3677,7 +3687,7 @@ YÊU CẦU PROMPT:
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL (Thủ công)</label>
+                            <label className="block text-sm font-medium text-text-secondary mb-1">Google Sheet ID hoặc URL (Thủ công)</label>
                             <input 
                               type="text" 
                               value={config.GOOGLE_SHEET_ID} 
@@ -3688,7 +3698,7 @@ YÊU CẦU PROMPT:
                                 setConfig({...config, GOOGLE_SHEET_ID: val});
                                 setSyncError(null);
                               }} 
-                              className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary text-xs" 
+                              className="w-full p-2 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary bg-bg-tertiary text-text-primary text-sm" 
                               placeholder="Nhập ID hoặc dán link Google Sheet"
                             />
                           </div>
@@ -3717,8 +3727,8 @@ YÊU CẦU PROMPT:
                                     className="w-full p-2.5 border border-border-medium rounded-lg focus:ring-2 focus:ring-accent-primary appearance-none bg-bg-tertiary text-text-primary pr-10"
                                   >
                                     <option value="">-- Chọn Một Tab --</option>
-                                    {availableTabs.map(tab => (
-                                      <option key={tab.id} value={tab.id}>{tab.title}</option>
+                                    {availableTabs.map((tab, idx) => (
+                                      <option key={`${tab.id}-${idx}`} value={tab.id}>{tab.title}</option>
                                     ))}
                                   </select>
                                   <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
@@ -3856,7 +3866,7 @@ YÊU CẦU PROMPT:
                     {config.KNOWLEDGE_BASE_FILES.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                         {config.KNOWLEDGE_BASE_FILES.map((file, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 bg-bg-tertiary border border-border-subtle rounded-lg group">
+                          <div key={`kb-file-${idx}`} className="flex items-center justify-between p-2 bg-bg-tertiary border border-border-subtle rounded-lg group">
                             <div className="flex items-center gap-2 overflow-hidden">
                               <FileText size={16} className="text-accent-primary shrink-0" />
                               <div className="flex flex-col overflow-hidden">
