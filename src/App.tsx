@@ -2717,7 +2717,7 @@ YÊU CẦU PROMPT:
         {/* Main Area */}
         <main className="flex-1 flex overflow-hidden relative bg-bg-primary">
           {/* Table Area */}
-          <div className={`flex flex-col h-full border-r border-border-subtle transition-all duration-300 ${activeBriefId && isPreviewExpanded ? 'w-0 opacity-0 overflow-hidden' : activeBriefId ? 'w-[60%]' : 'w-full'}`}>
+          <div className="flex flex-col h-full border-r border-border-subtle w-full pr-[68px]">
             {/* Action Bar */}
             <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
@@ -2926,13 +2926,15 @@ YÊU CẦU PROMPT:
                             exit={{ opacity: 0, scale: 0.95 }}
                             key={brief.id} 
                             className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''} hover:bg-bg-tertiary/40 transition-colors`}
-                            onClick={() => setActiveBriefId(brief.id)}>
+                            onClick={() => {
+                              setActiveBriefId(brief.id);
+                            }}>
                           
                           {isProcessingThis && (
                             <div className="absolute inset-0 shimmer opacity-10 pointer-events-none z-0" />
                           )}
 
-                          <td className="p-2.5 text-center rounded-l-xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
+                          <td className="p-2.5 text-center rounded-l-xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
                             <input type="checkbox" 
                               className="custom-checkbox"
                               checked={selectedIds.has(brief.id)}
@@ -2940,7 +2942,6 @@ YÊU CẦU PROMPT:
                                 const newSet = new Set(selectedIds);
                                 if (e.target.checked) {
                                   newSet.add(brief.id);
-                                  setIsWorkspaceCollapsed(false);
                                 } else {
                                   newSet.delete(brief.id);
                                 }
@@ -3116,7 +3117,7 @@ YÊU CẦU PROMPT:
             initial={false}
             animate={{ width: isWorkspaceCollapsed ? 68 : '40%', opacity: 1 }}
             transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-            className="flex flex-col bg-bg-secondary relative z-10 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
+            className="flex flex-col bg-bg-secondary absolute right-0 top-0 h-full z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
           >
             {/* Global Toggle Button */}
             <button 
