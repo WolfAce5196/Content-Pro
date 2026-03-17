@@ -2899,9 +2899,18 @@ YÊU CẦU PROMPT:
             {/* Table */}
             <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <table className="w-full min-w-[1200px] text-xs text-left border-separate border-spacing-y-2 border-spacing-x-0 table-fixed">
+                <colgroup>
+                  <col className="w-14" />
+                  <col className="w-20" />
+                  <col className="w-[400px]" />
+                  <col className="w-[300px]" />
+                  <col className="w-[200px]" />
+                  <col className="w-[250px]" />
+                  <col className="w-40" />
+                </colgroup>
                 <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-20 bg-bg-primary/95 backdrop-blur-md">
                   <tr>
-                    <th className="p-4 w-14 text-center">
+                    <th className="p-4 text-center">
                       <input type="checkbox" 
                         className="w-4 h-4 rounded border-white/10 bg-bg-tertiary text-accent-primary focus:ring-accent-primary/30 transition-all cursor-pointer shadow-inner"
                         checked={filteredBriefs.length > 0 && Array.from(selectedIds).filter(id => filteredBriefs.some(b => b.id === id)).length === filteredBriefs.length}
@@ -2919,12 +2928,12 @@ YÊU CẦU PROMPT:
                         }}
                       />
                     </th>
-                    <th className="p-4 w-20 text-center">Dòng</th>
-                    <th className="p-4 w-[400px]">Tóm tắt Brief</th>
-                    <th className="p-4 w-[300px]">Mô tả Media</th>
-                    <th className="p-4 w-[200px]">Định dạng</th>
-                    <th className="p-4 w-[250px]">Tham chiếu</th>
-                    <th className="p-4 w-40 text-right pr-8">Trạng thái</th>
+                    <th className="p-4 text-center">Dòng</th>
+                    <th className="p-4">Tóm tắt Brief</th>
+                    <th className="p-4">Mô tả Media</th>
+                    <th className="p-4">Định dạng</th>
+                    <th className="p-4">Tham chiếu</th>
+                    <th className="p-4 text-right pr-8">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2939,11 +2948,10 @@ YÊU CẦU PROMPT:
                             key={brief.id} 
                             className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''} hover:bg-bg-tertiary/40 transition-colors`}>
                           
-                          {isProcessingThis && (
-                            <div className="absolute inset-0 shimmer opacity-10 pointer-events-none z-0" />
-                          )}
-
                           <td className="p-4 text-center rounded-l-2xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
+                            {isProcessingThis && (
+                              <div className="absolute inset-0 shimmer opacity-10 pointer-events-none z-0 w-[1200px]" />
+                            )}
                             <input type="checkbox" 
                               className="custom-checkbox"
                               checked={selectedIds.has(brief.id)}
