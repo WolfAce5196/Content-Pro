@@ -2728,9 +2728,9 @@ YÊU CẦU PROMPT:
         </header>
 
         {/* Main Area */}
-        <main className="flex-1 flex overflow-hidden relative bg-bg-primary">
+        <main className="flex-1 flex overflow-hidden bg-bg-primary">
           {/* Table Area */}
-          <div className="flex flex-col h-full border-r border-border-subtle w-full pr-[68px]">
+          <div className="flex flex-col h-full border-r border-border-subtle flex-1 min-w-0 overflow-hidden">
             {/* Action Bar */}
             <div className="px-6 py-4 border-b border-white/5 bg-bg-primary/40 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-4">
@@ -2899,7 +2899,7 @@ YÊU CẦU PROMPT:
             {/* Table */}
             <div className="flex-1 overflow-auto px-6 pb-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               <div className="h-2 shrink-0"></div>
-              <table className="w-full text-xs text-left border-separate border-spacing-y-2">
+              <table className="min-w-[1200px] w-full text-xs text-left border-separate border-spacing-y-2 table-fixed">
                 <thead className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] sticky top-0 z-20 bg-bg-primary/90 backdrop-blur-md border-b border-white/5">
                   <tr>
                     <th className="p-2.5 w-12 text-center">
@@ -2920,11 +2920,11 @@ YÊU CẦU PROMPT:
                         }}
                       />
                     </th>
-                    <th className="p-2.5 w-16">Dòng</th>
-                    <th className="p-2.5">Tóm tắt Brief</th>
-                    <th className="p-2.5 w-[20%]">Mô tả Media</th>
-                    <th className="p-2.5 w-32">Định dạng</th>
-                    <th className="p-2.5 w-40">Tham chiếu</th>
+                    <th className="p-2.5 w-16 text-center">Dòng</th>
+                    <th className="p-2.5 w-[350px]">Tóm tắt Brief</th>
+                    <th className="p-2.5 w-[250px]">Mô tả Media</th>
+                    <th className="p-2.5 w-[180px]">Định dạng</th>
+                    <th className="p-2.5 w-[250px]">Tham chiếu</th>
                     <th className="p-2.5 w-40 text-right pr-6">Trạng thái</th>
                   </tr>
                 </thead>
@@ -3125,9 +3125,9 @@ YÊU CẦU PROMPT:
           {/* Right Panel Wrapper */}
           <motion.div 
             initial={false}
-            animate={{ width: isWorkspaceCollapsed ? 68 : '40%', opacity: 1 }}
+            animate={{ width: isWorkspaceCollapsed ? 68 : 450, opacity: 1 }}
             transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-            className="flex flex-col bg-bg-secondary absolute right-0 top-0 h-full z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.2)] border-l border-border-subtle"
+            className="flex flex-col bg-bg-secondary h-full shrink-0 relative z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.1)] border-l border-border-subtle"
           >
             {/* Global Toggle Button */}
             <button 
