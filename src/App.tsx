@@ -2240,7 +2240,7 @@ YÊU CẦU PROMPT:
             addLog(`[1/2] Đang tạo ảnh AI cho dòng ${brief.rowIndex}...`, 'info');
             
             // Step A: Generate Prompt with Retry
-            let imagePrompt = 'A beautiful marketing image';
+            let imagePrompt = 'A professional marketing image, high quality, photorealistic';
             let promptRetries = 0;
             const maxPromptRetries = 2;
 
@@ -2248,9 +2248,21 @@ YÊU CẦU PROMPT:
               try {
                 const promptResponse = await ai.models.generateContent({
                   model: 'gemini-3-flash-preview',
-                  contents: `Tạo PROMPT tiếng Anh chi tiết để AI tạo ảnh marketing cho brief: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}. Tỉ lệ: ${brief.mediaSize || '1:1'}.`
+                  contents: `Bạn là chuyên gia thiết kế hình ảnh marketing. Hãy tạo một PROMPT tiếng Anh chi tiết để AI tạo ảnh dựa trên các thông tin sau:
+                  - Tóm tắt brief: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                  - Giọng văn: ${brief.tone || 'Chuyên nghiệp'}
+                  - Nội dung bài viết (Content): ${brief.content || 'Không có'}
+                  - Mô tả media mong muốn: ${brief.briefMedia || 'Professional marketing photo'}
+                  - Ảnh tham chiếu (nếu có): ${brief.mediaReference || 'Không có'}
+                  
+                  Yêu cầu:
+                  - Tập trung vào phong cách marketing chuyên nghiệp, ánh sáng đẹp, bố cục rõ ràng.
+                  - KHÔNG dùng từ ngữ nhạy cảm.
+                  - Tỉ lệ ảnh: ${brief.mediaSize || '1:1'}.
+                  - Xuất kết quả là PROMPT TIẾNG ANH.`
                 });
                 imagePrompt = promptResponse.text || 'A beautiful marketing image';
+                addLog(`[info] Prompt tạo ảnh: ${imagePrompt}`, 'info'); // Ghi nhật ký prompt để bạn kiểm tra
                 break;
               } catch (pErr: any) {
                 if (promptRetries === maxPromptRetries) throw pErr;
@@ -2279,6 +2291,12 @@ YÊU CẦU PROMPT:
                 });
                 break;
               } catch (iErr: any) {
+                // Nếu lỗi do tham chiếu ảnh, thử lại mà không dùng tham chiếu
+                if (iErr.message?.includes('reference') || iErr.message?.includes('image')) {
+                   addLog(`Lỗi tham chiếu ảnh, đang thử lại mà không dùng ảnh mẫu...`, 'info');
+                   brief.mediaReference = ''; 
+                }
+                
                 if (iErr.message?.includes('429') || iErr.message?.includes('quota')) {
                   addLog(`Hết hạn mức API hoặc quá tải. Đang chờ...`, 'info');
                   await new Promise(r => setTimeout(r, 10000));
@@ -2295,12 +2313,15 @@ YÊU CẦU PROMPT:
             
             if (!currentBase64) {
               const finishReason = candidate?.finishReason;
+              // Capture any text explanation returned by the model
+              const textExplanation = candidate?.content?.parts?.find((p: any) => p.text)?.text;
+              
               if (finishReason === 'SAFETY') {
                 throw new Error('Bị chặn do vi phạm chính sách an toàn (Safety Filter).');
               } else if (finishReason === 'RECITATION') {
                 throw new Error('Bị chặn do vi phạm bản quyền (Recitation Filter).');
               } else {
-                throw new Error(`Không nhận được dữ liệu ảnh. Lý do: ${finishReason || 'Không xác định'}.`);
+                throw new Error(`Không nhận được dữ liệu ảnh. Lý do: ${finishReason || 'Không xác định'}.${textExplanation ? ` AI nói: ${textExplanation}` : ''}`);
               }
             }
             
@@ -3228,6 +3249,23 @@ YÊU CẦU PROMPT:
                   <span className="font-mono font-bold text-text-secondary tracking-wider uppercase text-[10px]">System Terminal</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      const lastInfoPrompt = [...logs].reverse().find(l => l.msg.includes('[info] Prompt tạo ảnh:'));
+                      const lastError = [...logs].reverse().find(l => l.type === 'error');
+                      if (!lastInfoPrompt || !lastError) {
+                        alert("Chưa có đủ thông tin (Prompt hoặc Lỗi) để tạo báo cáo.");
+                        return;
+                      }
+                      const report = `Prompt tạo ảnh: ${lastInfoPrompt.msg.replace('[info] Prompt tạo ảnh: ', '')}\n\nLỗi: ${lastError.msg}`;
+                      navigator.clipboard.writeText(report);
+                      alert("Đã copy báo cáo lỗi vào clipboard! Hãy gửi cho tôi nhé.");
+                    }}
+                    className="p-1.5 text-text-muted hover:text-accent-primary hover:bg-bg-tertiary rounded-md transition-colors text-[10px] font-bold uppercase tracking-wider" 
+                    title="Copy báo cáo lỗi"
+                  >
+                    Copy Lỗi
+                  </button>
                   <button onClick={() => setLogs([])} className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-md transition-colors" title="Clear logs"><Trash2 size={14}/></button>
                   <button onClick={() => setIsLogExpanded(false)} className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-tertiary rounded-md transition-colors" title="Close terminal"><X size={14}/></button>
                 </div>
