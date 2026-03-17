@@ -2258,11 +2258,17 @@ YÊU CẦU PROMPT:
                   Yêu cầu:
                   - Tập trung vào phong cách marketing chuyên nghiệp, ánh sáng đẹp, bố cục rõ ràng.
                   - KHÔNG dùng từ ngữ nhạy cảm.
+                  - KHÔNG bao gồm các tham số kỹ thuật của Midjourney (như --ar, --v, --stylize, --chaos, v.v.).
                   - Tỉ lệ ảnh: ${brief.mediaSize || '1:1'}.
                   - Xuất kết quả là PROMPT TIẾNG ANH.`
                 });
-                imagePrompt = promptResponse.text || 'A beautiful marketing image';
-                addLog(`[info] Prompt tạo ảnh: ${imagePrompt}`, 'info'); // Ghi nhật ký prompt để bạn kiểm tra
+                
+                // Clean up the prompt: remove any Midjourney parameters
+                imagePrompt = (promptResponse.text || 'A beautiful marketing image')
+                  .replace(/--[a-zA-Z0-9\s]+/g, '')
+                  .trim();
+                  
+                addLog(`[info] Prompt tạo ảnh: ${imagePrompt}`, 'info');
                 break;
               } catch (pErr: any) {
                 if (promptRetries === maxPromptRetries) throw pErr;
