@@ -57,6 +57,20 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+// Helper to remove undefined values for Firestore
+const removeUndefined = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined);
+  } else if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([_, v]) => v !== undefined)
+        .map(([k, v]) => [k, removeUndefined(v)])
+    );
+  }
+  return obj;
+};
+
 const GEMINI_KEYS = [
   "AIzaSyC-vQcgpR2B4ZN6zp6eAo4M-NUsPj066Aw",
   "AIzaSyAlg754zty0-hpgmBg_9qNVT8koZlfgPQ0"
@@ -207,8 +221,8 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
             className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-white/5 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
           >
             <div className="p-1.5 space-y-0.5">
-              {options.map((opt: string, i: number) => (
-                <label key={i} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
+              {options.map((opt: string) => (
+                <label key={opt} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
                   <div className="relative flex items-center justify-center">
                     <input 
                       type="checkbox" 
@@ -275,9 +289,9 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
             className="absolute top-full left-0 mt-1 w-full bg-bg-tertiary border border-white/5 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
           >
             <div className="p-1.5 space-y-0.5">
-              {options.map((opt: string, i: number) => (
+              {options.map((opt: string) => (
                 <button 
-                  key={i} 
+                  key={opt} 
                   onClick={() => { onChange(opt); setIsOpen(false); }}
                   className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer transition-colors ${selected === opt ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-primary'}`}
                 >
@@ -1175,7 +1189,7 @@ export default function App() {
                 if (!currentConfig.GEMINI_API_KEY) currentConfig.GEMINI_API_KEY = GEMINI_KEYS[Math.floor(Math.random() * GEMINI_KEYS.length)];
                 if (!currentConfig.IMGBB_API_KEY) currentConfig.IMGBB_API_KEY = IMGBB_KEYS[Math.floor(Math.random() * IMGBB_KEYS.length)];
               }
-              await setDoc(configRef, currentConfig, { merge: true });
+              await setDoc(configRef, removeUndefined(currentConfig), { merge: true });
             }
             
             setConfig(currentConfig);
@@ -1198,7 +1212,7 @@ export default function App() {
             
             const newConfig = { ...DEFAULT_CONFIG, GEMINI_API_KEY: geminiKey, IMGBB_API_KEY: imgbbKey };
             setConfig(newConfig);
-            await setDoc(configRef, newConfig);
+            await setDoc(configRef, removeUndefined(newConfig));
             addLog('Đã khởi tạo cấu hình mặc định.', 'info');
           }
 
@@ -1252,20 +1266,6 @@ export default function App() {
   // Auto-save briefs and logs
   useEffect(() => {
     if (briefs.length > 0) {
-      // Helper to remove undefined values for Firestore
-      const removeUndefined = (obj: any): any => {
-        if (Array.isArray(obj)) {
-          return obj.map(removeUndefined);
-        } else if (obj !== null && typeof obj === 'object') {
-          return Object.fromEntries(
-            Object.entries(obj)
-              .filter(([_, v]) => v !== undefined)
-              .map(([k, v]) => [k, removeUndefined(v)])
-          );
-        }
-        return obj;
-      };
-
       // Always save to localStorage immediately for maximum persistence
       try {
         localStorage.setItem('ais_briefs_backup', JSON.stringify(briefs));
@@ -1896,7 +1896,17 @@ ${toneInstruction}
     stopProcessingRef.current = false;
     setProgress({ current: 0, total: selectedIds.size, task: 'Tạo Media AI' });
     
-    const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
+    // Check for API key selection if using gemini-3.1-flash-image-preview
+    // @ts-ignore
+    const hasKey = await window.aistudio.hasSelectedApiKey();
+    if (!hasKey) {
+      addLog('Bạn cần chọn API Key trả phí để sử dụng tính năng sinh ảnh chất lượng cao.', 'info');
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+      // Proceed after dialog closes (assuming success as per guidelines)
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || config.GEMINI_API_KEY });
     let count = 0;
     
     const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
@@ -2690,7 +2700,7 @@ YÊU CẦU PROMPT:
                       setSyncError(null);
                       if (user) {
                         try {
-                          await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
+                          await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(newConfig), { merge: true });
                         } catch (error: any) {
                           console.error("Error saving config:", error);
                         }
@@ -2722,7 +2732,7 @@ YÊU CẦU PROMPT:
                       setSyncError(null);
                       if (user) {
                         try {
-                          await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
+                          await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(newConfig), { merge: true });
                         } catch (error: any) {
                           console.error("Error saving config:", error);
                         }
@@ -2789,7 +2799,7 @@ YÊU CẦU PROMPT:
                         setConfig(newConfig);
                         if (user) {
                           try {
-                            await setDoc(doc(db, 'userConfigs', user.uid), newConfig, { merge: true });
+                            await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(newConfig), { merge: true });
                           } catch (error: any) {
                             console.error("Error saving filter config:", error);
                           }
@@ -3976,7 +3986,7 @@ function doGet(e) {
                   setShowConfig(false);
                   if (user) {
                     try {
-                      await setDoc(doc(db, 'userConfigs', user.uid), config, { merge: true });
+                      await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(config), { merge: true });
                       addLog('Đã lưu cấu hình vào database.', 'success');
                     } catch (error: any) {
                       console.error("Error saving config:", error);
