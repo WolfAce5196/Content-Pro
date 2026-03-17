@@ -478,13 +478,17 @@ const PreviewPanel = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", duration: 0.3 }}
         className="bg-bg-secondary w-full max-w-6xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-white/5"
+        onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-white/5 bg-bg-tertiary/50 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -815,6 +819,15 @@ export default function App() {
   const [isWorkspaceCollapsed, setIsWorkspaceCollapsed] = useState(true);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(true);
+
+  // Auto expand/collapse workspace based on selection
+  useEffect(() => {
+    if (selectedIds.size > 0) {
+      setIsWorkspaceCollapsed(false);
+    } else {
+      setIsWorkspaceCollapsed(true);
+    }
+  }, [selectedIds.size]);
 
   const updateBriefField = (id: string, field: keyof Brief, value: any) => {
     setBriefs(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
@@ -3209,6 +3222,7 @@ YÊU CẦU PROMPT:
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowGuide(false)}
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -3216,6 +3230,7 @@ YÊU CẦU PROMPT:
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ type: "spring", duration: 0.3 }}
               className="bg-bg-secondary rounded-2xl shadow-2xl shadow-black/50 w-full max-w-3xl max-h-[85vh] flex flex-col border border-border-medium overflow-hidden"
+              onClick={e => e.stopPropagation()}
             >
               <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-secondary shrink-0">
                 <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
@@ -3519,6 +3534,7 @@ YÊU CẦU PROMPT:
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            onClick={() => setShowConfig(false)}
           >
             <motion.div 
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -3526,6 +3542,7 @@ YÊU CẦU PROMPT:
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ type: "spring", duration: 0.3 }}
               className="bg-bg-secondary rounded-2xl shadow-2xl shadow-black/50 w-full max-w-2xl max-h-[85vh] flex flex-col border border-border-medium overflow-hidden"
+              onClick={e => e.stopPropagation()}
             >
               <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-secondary shrink-0">
                 <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
