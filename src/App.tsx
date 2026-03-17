@@ -957,7 +957,8 @@ export default function App() {
   const [isDataLoading, setIsDataLoading] = useState(false);
 
   // New states for enhancements
-  const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete'>(config.FILTER_TAB || 'all');
+  const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete' | 'review_content' | 'review_media'>(config.FILTER_TAB || 'all');
+  const [showReviewDropdown, setShowReviewDropdown] = useState(false);
 
   useEffect(() => {
     if (config.FILTER_TAB) {
@@ -2631,12 +2632,8 @@ YÊU CẦU PROMPT:
     if (filterTab === 'done') return brief.status === 'done' || brief.status === 'saved' || brief.statusDetail === 'Hoàn Thành';
     if (filterTab === 'pending') return brief.status === 'pending' || brief.statusDetail === 'Chưa Xử Lý' || brief.statusDetail === 'Chưa xử lý';
     if (filterTab === 'incomplete') return brief.status === 'incomplete' || (brief.status !== 'pending' && brief.status !== 'done' && brief.status !== 'saved' && brief.statusDetail !== 'Hoàn Thành');
-    if (filterTab === 'review') {
-      const missingContent = !brief.content;
-      const missingImage = !brief.imageUrl && !brief.imageBase64;
-      const isMissingOne = (missingContent || missingImage) && !(missingContent && missingImage);
-      return brief.status === 'error' || isMissingOne;
-    }
+    if (filterTab === 'review_content') return !brief.content && (!!brief.imageUrl || !!brief.imageBase64);
+    if (filterTab === 'review_media') return !!brief.content && (!brief.imageUrl && !brief.imageBase64);
     return true;
   });
 
@@ -2686,7 +2683,7 @@ YÊU CẦU PROMPT:
           {!isSidebarCollapsed && (
             <div className="space-y-4">
               <div className="flex items-center justify-between px-1">
-                <h3 className="text-[11px] font-display font-black text-text-muted uppercase tracking-widest">Cấu Hình Cột</h3>
+                <h3 className="text-[11px] font-sans font-bold text-amber-400 uppercase tracking-widest">Cấu Hình Cột</h3>
                 <button 
                   onClick={fetchHeaders} 
                   disabled={isFetchingHeaders}
@@ -2720,7 +2717,7 @@ YÊU CẦU PROMPT:
           {/* Setting Section */}
           <div className={`space-y-4 ${!isSidebarCollapsed ? 'pt-4 border-t border-white/5' : ''}`}>
             {!isSidebarCollapsed && (
-              <h3 className="text-[11px] font-display font-black text-text-muted uppercase tracking-widest px-1">Setting</h3>
+              <h3 className="text-[11px] font-sans font-bold text-amber-400 uppercase tracking-widest px-1">Settings</h3>
             )}
             <div className="space-y-1">
               <button onClick={() => setShowConfig(true)} className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${showConfig ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary/50 hover:text-text-primary'}`}>
@@ -2912,8 +2909,7 @@ YÊU CẦU PROMPT:
                     { id: 'all', label: 'Tất Cả' },
                     { id: 'done', label: 'Đã Làm' },
                     { id: 'pending', label: 'Chưa Làm' },
-                    { id: 'incomplete', label: 'Cần Hoàn Thiện' },
-                    { id: 'review', label: 'Rà Soát' }
+                    { id: 'incomplete', label: 'Cần Hoàn Thiện' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -2935,6 +2931,31 @@ YÊU CẦU PROMPT:
                       {tab.label}
                     </button>
                   ))}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowReviewDropdown(!showReviewDropdown)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === 'review_content' || filterTab === 'review_media' ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
+                    >
+                      Rà Soát
+                      {showReviewDropdown ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                    {showReviewDropdown && (
+                      <div className="absolute top-full right-0 mt-1 bg-bg-secondary border border-white/10 rounded-lg shadow-lg z-50 p-1 min-w-[120px]">
+                        <button
+                          onClick={() => { setFilterTab('review_content'); setShowReviewDropdown(false); }}
+                          className={`block w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === 'review_content' ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
+                        >
+                          Thiếu Content
+                        </button>
+                        <button
+                          onClick={() => { setFilterTab('review_media'); setShowReviewDropdown(false); }}
+                          className={`block w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === 'review_media' ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
+                        >
+                          Thiếu Media
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {selectedIds.size > 0 && (
