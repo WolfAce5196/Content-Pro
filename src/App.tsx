@@ -1989,6 +1989,10 @@ ${toneInstruction}
     const selectedBriefs = Array.from(selectedIds)
       .map(id => briefs.find(b => b.id === id))
       .filter(Boolean) as Brief[];
+    
+    addLog(`DEBUG: selectedIds size: ${selectedIds.size}`, 'info');
+    addLog(`DEBUG: selectedBriefs length: ${selectedBriefs.length}`, 'info');
+    addLog(`DEBUG: COL_IMAGE config: ${config.COL_IMAGE}`, 'info');
 
     // Sắp xếp theo rowIndex để xử lý tuần tự đúng thứ tự
     selectedBriefs.sort((a, b) => a.rowIndex - b.rowIndex);
