@@ -1721,6 +1721,7 @@ export default function App() {
     const ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
     
     try {
+      updateBrief(brief.id, { status: 'generating_content' });
       addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
       
       const briefText = Object.entries(brief.briefData)
@@ -1758,8 +1759,8 @@ Yêu cầu: Viết nội dung dựa trên brief trên.`;
       addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
       
     } catch (error: any) {
-      addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${error.message}`, 'error');
       updateBrief(brief.id, { status: 'error', statusDetail: 'Lỗi Content' });
+      addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${error.message}`, 'error');
     }
   };
 
@@ -1985,6 +1986,7 @@ ${toneInstruction}
         if (stopProcessingRef.current) break;
 
         try {
+          updateBrief(brief.id, { status: 'generating_media' });
           if (brief.mediaFormat === 'Video') {
             addLog(`Đang tạo Video cho dòng ${brief.rowIndex}...`, 'info');
             
@@ -2170,7 +2172,7 @@ YÊU CẦU PROMPT:
           }
         } catch (err: any) {
           addLog(`Lỗi tạo Media dòng ${brief.rowIndex}: ${err.message}`, 'error');
-          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error', statusDetail: 'Lỗi Media' } : b));
         } finally {
           count++;
           setProgress(p => ({ ...p, current: count }));
@@ -2940,7 +2942,7 @@ YÊU CẦU PROMPT:
                       {showReviewDropdown ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </button>
                     {showReviewDropdown && (
-                      <div className="absolute top-full right-0 mt-1 bg-bg-secondary border border-white/10 rounded-lg shadow-lg z-50 p-1 min-w-[120px]">
+                      <div className="absolute top-full right-0 mt-1 bg-bg-secondary border border-white/10 rounded-lg shadow-lg z-50 p-1 min-w-[150px]">
                         <button
                           onClick={() => { setFilterTab('review_content'); setShowReviewDropdown(false); }}
                           className={`block w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === 'review_content' ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
