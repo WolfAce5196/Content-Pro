@@ -2925,16 +2925,13 @@ YÊU CẦU PROMPT:
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             key={brief.id} 
-                            className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''} hover:bg-bg-tertiary/40 transition-colors`}
-                            onClick={() => {
-                              setActiveBriefId(brief.id);
-                            }}>
+                            className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''} hover:bg-bg-tertiary/40 transition-colors`}>
                           
                           {isProcessingThis && (
                             <div className="absolute inset-0 shimmer opacity-10 pointer-events-none z-0" />
                           )}
 
-                          <td className="p-2.5 text-center rounded-l-xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                          <td className="p-2.5 text-center rounded-l-xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
                             <input type="checkbox" 
                               className="custom-checkbox"
                               checked={selectedIds.has(brief.id)}
@@ -2954,7 +2951,7 @@ YÊU CẦU PROMPT:
                               {brief.rowIndex}
                             </div>
                           </td>
-                          <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative">
+                          <td className="p-2.5 border-y border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={() => setActiveBriefId(brief.id)}>
                             <div className="text-sm font-medium leading-relaxed text-text-primary line-clamp-2 mb-2 transition-colors font-sans">
                               {config.COL_BRIEFS.length > 0 ? brief.briefData[config.COL_BRIEFS[0]] || <span className="text-text-muted/40 italic font-normal">Trống</span> : <span className="text-text-muted/40 italic font-normal">Trống</span>}
                             </div>
