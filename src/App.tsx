@@ -222,7 +222,7 @@ const MultiSelectDropdown = ({ options, selected, onChange, label, icon: Icon }:
           >
             <div className="p-1.5 space-y-0.5">
               {options.map((opt: string, idx: number) => (
-                <label key={`${opt}-${idx}`} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
+                <label key={opt + '-' + idx} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
                   <div className="relative flex items-center justify-center">
                     <input 
                       type="checkbox" 
@@ -291,7 +291,7 @@ const SingleSelectDropdown = ({ options, selected, onChange, label, icon: Icon }
             <div className="p-1.5 space-y-0.5">
               {options.map((opt: string, idx: number) => (
                 <button 
-                  key={`${opt}-${idx}`} 
+                  key={opt + '-' + idx}
                   onClick={() => { onChange(opt); setIsOpen(false); }}
                   className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer transition-colors ${selected === opt ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-primary'}`}
                 >
@@ -428,7 +428,7 @@ const WorkspacePanel = ({
       <div className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border-medium scrollbar-track-transparent ${isCollapsed ? 'hidden' : ''}`}>
         {selectedBriefs.map((brief, idx) => (
           <WorkspaceItem 
-            key={`${brief.id}-${idx}`} 
+            key={brief.id}
             brief={brief} 
             onContentClick={() => onContentClick(brief)}
             onImageClick={() => onImageClick(brief)}
@@ -520,7 +520,7 @@ const PreviewPanel = ({
                 </h4>
                 <div className="grid grid-cols-1 gap-3 bg-bg-tertiary/30 p-4 rounded-xl border border-white/5">
                   {Object.entries(brief.briefData).map(([key, value], idx) => (
-                    <div key={`${key}-${idx}`} className="flex flex-col gap-1 text-xs">
+                    <div key={key + '-' + idx} className="flex flex-col gap-1 text-xs">
                       <span className="font-medium text-text-secondary">{key}</span>
                       <span className="text-text-primary bg-bg-secondary p-2 rounded-lg border border-white/5">{value || <span className="text-text-muted italic">Trống</span>}</span>
                     </div>
@@ -564,7 +564,7 @@ const PreviewPanel = ({
                         className="w-full p-2 bg-bg-secondary border border-white/5 rounded-lg text-xs text-text-primary focus:ring-1 focus:ring-accent-primary/30 outline-none"
                       >
                         {mediaSizes[brief.mediaFormat || 'Ảnh'].map((size, idx) => (
-                          <option key={`${size}-${idx}`} value={size}>{size}</option>
+                          <option key={size + '-' + idx} value={size}>{size}</option>
                         ))}
                       </select>
                     </div>
@@ -776,7 +776,7 @@ const PreviewPanel = ({
                     ) : (
                       <div className="space-y-4">
                         {brief.history.map((item, idx) => (
-                          <div key={`${item.id}-${idx}`} className="bg-bg-secondary border border-white/5 rounded-xl p-5 space-y-4 hover:border-accent-primary/30 transition-all group shadow-sm">
+                          <div key={item.id} className="bg-bg-secondary border border-white/5 rounded-xl p-5 space-y-4 hover:border-accent-primary/30 transition-all group shadow-sm">
                             <div className="flex justify-between items-center">
                               <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-bold text-text-muted uppercase bg-bg-tertiary/50 px-2.5 py-1 rounded border border-white/5">
@@ -824,7 +824,20 @@ const PreviewPanel = ({
 };
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const lastSavedConfig = useRef(config);
+  const lastSavedData = useRef<any>(null);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (user && config && JSON.stringify(config) !== JSON.stringify(lastSavedConfig.current)) {
+        setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(config), { merge: true });
+        lastSavedConfig.current = config;
+      }
+    }, 10000);
+    return () => clearTimeout(handler);
+  }, [config, user]);
   const [showConfig, setShowConfig] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
   const [showComponentDesc, setShowComponentDesc] = useState(false);
@@ -832,7 +845,6 @@ export default function App() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeBriefId, setActiveBriefId] = useState<string | null>(null);
   const [logs, setLogs] = useState<{id: string, time: string, msg: string, type: 'info'|'error'|'success'}[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [availableTabs, setAvailableTabs] = useState<{id: number, title: string}[]>([]);
   const [isFetchingTabs, setIsFetchingTabs] = useState(false);
@@ -883,7 +895,7 @@ export default function App() {
     
     // Determine what failed
     // Luôn cho phép retry cả content và image
-    await generateContent();
+    await generateContent(true);
     await generateImage();
     
     // Restore selection
@@ -980,9 +992,9 @@ export default function App() {
     const parts = msg.split(urlRegex);
     return parts.map((part, i) => {
       if (part.match(urlRegex)) {
-        return <a key={`log-url-${i}`} href={part} target="_blank" rel="noreferrer" className="underline text-accent-primary break-all">{part}</a>;
+        return <a key={`log-url-${part}-${i}`} href={part} target="_blank" rel="noreferrer" className="underline text-accent-primary break-all">{part}</a>;
       }
-      return <span key={`log-text-${i}`}>{part}</span>;
+      return <span key={`log-text-${part}-${i}`}>{part}</span>;
     });
   };
 
@@ -1026,7 +1038,7 @@ export default function App() {
             {brief.history && brief.history.length > 0 ? (
               <div className="space-y-4">
                 {brief.history.slice().reverse().map((item, idx) => (
-                  <div key={`${item.id}-${idx}`} className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle hover:border-accent-primary/50 transition-all group">
+                  <div key={item.id} className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle hover:border-accent-primary/50 transition-all group">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-accent-primary bg-accent-primary/10 px-2 py-1 rounded">v{brief.history.length - idx}</span>
@@ -1215,7 +1227,11 @@ export default function App() {
           const dataSnap = await getDoc(dataRef);
           if (dataSnap.exists()) {
             const data = dataSnap.data();
-            if (data.briefs) setBriefs(data.briefs);
+            if (data.briefs) {
+              const briefsData = data.briefs as Brief[];
+              const uniqueBriefs = Array.from(new Map(briefsData.map((b: Brief) => [b.id, b])).values());
+              setBriefs(uniqueBriefs);
+            }
             if (data.logs) setLogs(data.logs);
             addLog('Đã khôi phục phiên làm việc trước đó.', 'success');
           }
@@ -1291,12 +1307,17 @@ export default function App() {
               updatedAt: new Date().toISOString()
             });
 
-            await setDoc(doc(db, 'userData', user.uid), dataToSave, { merge: true });
+            const { updatedAt, ...dataToCompare } = dataToSave;
+
+            if (JSON.stringify(dataToCompare) !== JSON.stringify(lastSavedData.current)) {
+              await setDoc(doc(db, 'userData', user.uid), dataToSave, { merge: true });
+              lastSavedData.current = dataToCompare;
+            }
           } catch (error) {
             console.error("Error auto-saving data:", error);
           }
         };
-        const timer = setTimeout(saveData, 3000); // Debounce save to Firestore
+        const timer = setTimeout(saveData, 10000); // Debounce save to Firestore
         return () => clearTimeout(timer);
       }
     }
@@ -1773,7 +1794,7 @@ Yêu cầu: Viết nội dung dựa trên brief trên.`;
     setSelectedIds(originalSelectedIds);
   };
 
-  const generateContent = async () => {
+  const generateContent = async (isForced = true) => {
     if (selectedIds.size === 0) return;
     
     const missingConfigs = [];
@@ -1813,6 +1834,14 @@ Yêu cầu: Viết nội dung dựa trên brief trên.`;
           if (stopProcessingRef.current) break;
         }
         if (stopProcessingRef.current) break;
+
+        // Check if already has content and not forced
+        if (!isForced && brief.content && brief.content.trim() !== "") {
+          addLog(`Bỏ qua dòng ${brief.rowIndex} vì đã có content.`, 'info');
+          count++;
+          setProgress(p => ({ ...p, current: count }));
+          continue;
+        }
 
         try {
           addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
@@ -2818,18 +2847,11 @@ YÊU CẦU PROMPT:
                   <select 
                     value={config.GOOGLE_SHEET_ID} 
                     disabled={!accessToken}
-                    onChange={async e => {
+                    onChange={e => {
                       const newId = e.target.value;
                       const newConfig = {...config, GOOGLE_SHEET_ID: newId, SHEET_GID: ""};
                       setConfig(newConfig);
                       setSyncError(null);
-                      if (user) {
-                        try {
-                          await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(newConfig), { merge: true });
-                        } catch (error: any) {
-                          console.error("Error saving config:", error);
-                        }
-                      }
                     }}
                     className="bg-transparent text-[13px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors max-w-[180px] truncate disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -2837,7 +2859,7 @@ YÊU CẦU PROMPT:
                       {!accessToken ? "-- Chưa đăng nhập --" : "-- Chọn File --"}
                     </option>
                     {availableSpreadsheets.map((ss, idx) => (
-                      <option key={`${ss.id}-${idx}`} value={ss.id} className="bg-bg-tertiary text-text-primary">{ss.name}</option>
+                      <option key={ss.id} value={ss.id} className="bg-bg-tertiary text-text-primary">{ss.name}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover:text-accent-primary transition-colors" size={12} />
@@ -2851,17 +2873,10 @@ YÊU CẦU PROMPT:
                   <select 
                     value={config.SHEET_GID} 
                     disabled={!config.GOOGLE_SHEET_ID || availableTabs.length === 0}
-                    onChange={async e => {
+                    onChange={e => {
                       const newConfig = {...config, SHEET_GID: e.target.value};
                       setConfig(newConfig);
                       setSyncError(null);
-                      if (user) {
-                        try {
-                          await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(newConfig), { merge: true });
-                        } catch (error: any) {
-                          console.error("Error saving config:", error);
-                        }
-                      }
                     }}
                     className="bg-transparent text-[13px] text-text-primary outline-none cursor-pointer appearance-none pr-6 font-medium hover:text-accent-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -2869,7 +2884,7 @@ YÊU CẦU PROMPT:
                       {!config.GOOGLE_SHEET_ID ? "-- Trống --" : "-- Chọn Tab --"}
                     </option>
                     {availableTabs.map((tab, idx) => (
-                      <option key={`${tab.id}-${idx}`} value={tab.id} className="bg-bg-tertiary text-text-primary">{tab.title}</option>
+                      <option key={tab.id} value={tab.id} className="bg-bg-tertiary text-text-primary">{tab.title}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none group-hover:text-accent-primary transition-colors" size={12} />
@@ -2917,18 +2932,11 @@ YÊU CẦU PROMPT:
                   ].map(tab => (
                     <button
                       key={tab.id}
-                      onClick={async () => {
+                      onClick={() => {
                         const newTab = tab.id as any;
                         setFilterTab(newTab);
                         const newConfig = { ...config, FILTER_TAB: newTab };
                         setConfig(newConfig);
-                        if (user) {
-                          try {
-                            await setDoc(doc(db, 'userConfigs', user.uid), removeUndefined(newConfig), { merge: true });
-                          } catch (error: any) {
-                            console.error("Error saving filter config:", error);
-                          }
-                        }
                       }}
                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === tab.id ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
                     >
@@ -2970,7 +2978,7 @@ YÊU CẦU PROMPT:
               </div>
               <div className="flex items-center bg-bg-tertiary/80 p-1 rounded-xl border border-white/10 shadow-inner">
                 <button 
-                  onClick={generateContent} 
+                  onClick={() => generateContent(true)} 
                   disabled={isProcessing || selectedIds.size === 0} 
                   className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
                 >
@@ -3151,7 +3159,7 @@ YÊU CẦU PROMPT:
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            key={`${brief.id}-${idx}`} 
+                            key={brief.id} 
                             className={`card-row bg-bg-tertiary/20 group relative overflow-hidden cursor-pointer ${activeBriefId === brief.id ? 'selected' : ''} ${isProcessingThis ? 'processing' : ''} hover:bg-bg-tertiary/40 transition-colors`}>
                           
                           <td className="p-4 text-center rounded-l-2xl border-y border-l border-white/5 group-hover:border-accent-primary/30 transition-all z-10 relative" onClick={e => e.stopPropagation()}>
@@ -3888,7 +3896,7 @@ YÊU CẦU PROMPT:
                                 >
                                   <option value="">-- Chọn một Bảng tính từ Drive --</option>
                                   {availableSpreadsheets.map((ss, idx) => (
-                                    <option key={`${ss.id}-${idx}`} value={ss.id}>{ss.name}</option>
+                                    <option key={ss.id} value={ss.id}>{ss.name}</option>
                                   ))}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />
@@ -3943,7 +3951,7 @@ YÊU CẦU PROMPT:
                                   >
                                     <option value="">-- Chọn Một Tab --</option>
                                     {availableTabs.map((tab, idx) => (
-                                      <option key={`${tab.id}-${idx}`} value={tab.id}>{tab.title}</option>
+                                      <option key={tab.id} value={tab.id}>{tab.title}</option>
                                     ))}
                                   </select>
                                   <ChevronDown className="absolute right-3 top-3 text-text-muted pointer-events-none" size={16} />

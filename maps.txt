@@ -1,0 +1,56 @@
+46:      providerInfo: auth.currentUser?.providerData.map(provider => ({
+63:    return obj.map(removeUndefined);
+68:        .map(([k, v]) => [k, removeUndefined(v)])
+224:              {options.map((opt: string, idx: number) => (
+292:              {options.map((opt: string, idx: number) => (
+429:        {selectedBriefs.map((brief, idx) => (
+522:                  {Object.entries(brief.briefData).map(([key, value], idx) => (
+566:                        {mediaSizes[brief.mediaFormat || 'Ảnh'].map((size, idx) => (
+778:                        {brief.history.map((item, idx) => (
+879:    setBriefs(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+883:    setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+992:    return parts.map((part, i) => {
+1039:                {brief.history.slice().reverse().map((item, idx) => (
+1283:          const optimizedBriefs = briefs.map(b => ({ ...b, imageBase64: undefined }));
+1294:            const optimizedBriefs = briefs.map(b => {
+1336:      const sheetHeaders = Array.from(new Set((data.values?.[0] || []).map((h: any) => String(h).trim())));
+1503:      const tabs = data.sheets.map((s: any) => ({
+1531:    setBriefs(prev => prev.map(b => {
+1573:              currentTabs = tabsData.sheets.map((s: any) => ({
+1606:        rows = data.values.map((row: any[]) => row.map(cell => String(cell || '')));
+1619:      const headers = rows[0].map(h => h.trim());
+1741:        .map(([key, value]) => `- ${key}: ${value}`)
+1746:      const knowledgeBaseLinks = config.KNOWLEDGE_BASE_LINKS.filter(l => l.trim() !== "").map(l => `- ${l}`).join('\n');
+1811:    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+1832:            .map(([key, value]) => `- ${key}: ${value}`)
+1837:          const knowledgeBaseLinks = config.KNOWLEDGE_BASE_LINKS.filter(l => l.trim() !== "").map(l => `- ${l}`).join('\n');
+1897:          setBriefs(prev => prev.map(b => {
+1926:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+1972:      .map(id => briefs.find(b => b.id === id))
+2007:TÓM TẮT BRIEF: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
+2030:              setBriefs(prev => prev.map(b => {
+2067:- TÓM TẮT BRIEF: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
+2146:              setBriefs(prev => prev.map(b => {
+2188:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error', statusDetail: 'Lỗi Media' } : b));
+2220:    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+2269:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageUrl: data.data.url, status: 'uploaded', statusDetail: 'Đã Upload' } : b));
+2274:        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+2315:    const selectedBriefs = Array.from(selectedIds).map(id => briefs.find(b => b.id === id)).filter(Boolean) as Brief[];
+2348:                  - Tóm tắt brief: ${Object.entries(brief.briefData).map(([k, v]) => `${k}: ${v}`).join(', ')}
+2430:            setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageBase64: currentBase64, status: 'image_generated' } : b));
+2447:              setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageUrl: currentImageUrl, status: 'uploaded', statusDetail: 'Đã tạo & Upload' } : b));
+2462:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+2495:        const sheetHeaders = Array.from(new Set((headerData.values?.[0] || []).map((h: any) => String(h).trim())));
+2579:        setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved', statusDetail: 'Hoàn Thành' } : b));
+2633:          setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved', statusDetail: 'Hoàn Thành' } : b));
+2843:                    {availableSpreadsheets.map((ss, idx) => (
+2868:                    {availableTabs.map((tab, idx) => (
+2914:                  ].map(tab => (
+3115:                            const newSet = new Set(filteredBriefs.map(b => b.id));
+3137:                    {filteredBriefs.map((brief, idx) => {
+3396:                  {logs.map((log) => (
+3429:            updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}
+3880:                                  {availableSpreadsheets.map((ss, idx) => (
+3935:                                    {availableTabs.map((tab, idx) => (
+4029:                      {config.KNOWLEDGE_BASE_LINKS.map((link, idx) => (
+4073:                        {config.KNOWLEDGE_BASE_FILES.map((file, idx) => (

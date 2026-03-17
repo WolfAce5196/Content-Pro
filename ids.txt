@@ -1,0 +1,19 @@
+102:  id: string;
+112:  id: string;
+400:  onRetry: (id: string) => void
+459:  updateBrief: (id: string, updates: Partial<Brief>) => void, 
+846:  const [logs, setLogs] = useState<{id: string, time: string, msg: string, type: 'info'|'error'|'success'}[]>([]);
+848:  const [availableTabs, setAvailableTabs] = useState<{id: number, title: string}[]>([]);
+851:  const [availableSpreadsheets, setAvailableSpreadsheets] = useState<{id: string, name: string}[]>([]);
+878:  const updateBriefField = (id: string, field: keyof Brief, value: any) => {
+882:  const updateBrief = (id: string, updates: Partial<Brief>) => {
+904:  const handleMediaUpload = (id: string, file: File) => {
+1504:        id: s.properties.sheetId,
+1574:                id: s.properties.sheetId,
+1900:                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+2033:                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+2149:                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+2910:                    { id: 'all', label: 'Tất Cả' },
+2911:                    { id: 'done', label: 'Đã Làm' },
+2912:                    { id: 'pending', label: 'Chưa Làm' },
+2913:                    { id: 'incomplete', label: 'Cần Hoàn Thiện' }

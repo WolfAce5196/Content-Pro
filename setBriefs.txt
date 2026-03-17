@@ -1,0 +1,20 @@
+843:  const [briefs, setBriefs] = useState<Brief[]>([]);
+879:    setBriefs(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+883:    setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
+1229:            if (data.briefs) setBriefs(data.briefs);
+1437:      setBriefs([]);
+1531:    setBriefs(prev => prev.map(b => {
+1715:      setBriefs(loadedBriefs);
+1897:          setBriefs(prev => prev.map(b => {
+1926:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+2030:              setBriefs(prev => prev.map(b => {
+2146:              setBriefs(prev => prev.map(b => {
+2188:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error', statusDetail: 'Lỗi Media' } : b));
+2269:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageUrl: data.data.url, status: 'uploaded', statusDetail: 'Đã Upload' } : b));
+2274:        setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+2430:            setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageBase64: currentBase64, status: 'image_generated' } : b));
+2447:              setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageUrl: currentImageUrl, status: 'uploaded', statusDetail: 'Đã tạo & Upload' } : b));
+2462:          setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, status: 'error' } : b));
+2579:        setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved', statusDetail: 'Hoàn Thành' } : b));
+2633:          setBriefs(prev => prev.map(b => selectedIds.has(b.id) ? { ...b, status: 'saved', statusDetail: 'Hoàn Thành' } : b));
+3429:            updateBrief={(id, updates) => setBriefs(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))}

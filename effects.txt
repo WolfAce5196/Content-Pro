@@ -1,0 +1,16 @@
+1:import React, { useState, useEffect, useRef } from 'react';
+192:  useEffect(() => {
+260:  useEffect(() => {
+831:  useEffect(() => {
+858:  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+870:  useEffect(() => {
+976:  useEffect(() => {
+1141:  useEffect(() => {
+1250:  useEffect(() => {
+1265:  useEffect(() => {
+1272:  useEffect(() => {
+1362:  useEffect(() => {
+1465:  useEffect(() => {
+1520:  useEffect(() => {
+1528:  useEffect(() => {
+1726:  useEffect(() => {

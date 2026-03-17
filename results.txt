@@ -1,0 +1,5 @@
+  "AIzaSyC-vQcgpR2B4ZN6zp6eAo4M-NUsPj066Aw",
+  "AIzaSyAlg754zty0-hpgmBg_9qNVT8koZlfgPQ0"
+                if (!currentConfig.GEMINI_API_KEY) currentConfig.GEMINI_API_KEY = "AIzaSyAfQigk0oEr0rjqAgV5uoF7FV5jMZZruos";
+              geminiKey = "AIzaSyAfQigk0oEr0rjqAgV5uoF7FV5jMZZruos";
+                      <li>Chọn dự án và sao chép mã API Key (có dạng <code>AIza...</code>).</li>

@@ -1,0 +1,189 @@
+103:  content: string;
+117:  content: string;
+120:  status: 'pending' | 'content_generated' | 'image_generated' | 'video_generated' | 'uploaded' | 'saved' | 'done' | 'incomplete' | 'error' | 'generating_content' | 'generating_media';
+124:  mediaFormat?: 'Ảnh' | 'Video';
+125:  mediaSize?: string;
+126:  mediaReference?: string; // Link or base64
+170:    content_generated: { color: 'badge-processing', text: 'Đã có Content', dot: 'bg-accent-primary animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]' },
+171:    image_generated: { color: 'badge-success', text: 'Đã có Ảnh', dot: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' },
+360:          {brief.content || <span className="text-text-muted italic">Đang chờ tạo nội dung...</span>}
+455:  generateSingleContent,
+456:  generateSingleImage
+462:  setPreviewMedia: (media: { url: string, type: 'image' | 'video' } | null) => void,
+463:  generateSingleContent: (brief: Brief) => Promise<void>,
+464:  generateSingleImage: (brief: Brief) => Promise<void>
+466:  const [activeTab, setActiveTab] = useState<'content' | 'image' | 'history'>('content');
+468:  const mediaSizes = {
+478:        updateBrief(brief.id, { mediaReference: reader.result as string });
+551:                        value={brief.mediaFormat || 'Ảnh'} 
+552:                        onChange={e => updateBrief(brief.id, { mediaFormat: e.target.value as any, mediaSize: mediaSizes[e.target.value as keyof typeof mediaSizes][0] })}
+562:                        value={brief.mediaSize || '1:1'} 
+563:                        onChange={e => updateBrief(brief.id, { mediaSize: e.target.value })}
+566:                        {mediaSizes[brief.mediaFormat || 'Ảnh'].map((size, idx) => (
+574:                    <label className="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Tham chiếu media</label>
+578:                        value={brief.mediaReference?.startsWith('data:') ? 'Đã tải ảnh lên' : (brief.mediaReference || '')} 
+579:                        onChange={e => updateBrief(brief.id, { mediaReference: e.target.value })}
+599:                onClick={() => setActiveTab('content')}
+600:                className={`pb-3 text-xs font-medium transition-colors relative ${activeTab === 'content' ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
+605:                {activeTab === 'content' && (
+635:          {activeTab === 'content' ? (
+637:              key="content"
+647:                  placeholder="Sửa content..."
+648:                  defaultValue={brief.content}
+649:                  onBlur={(e) => updateBrief(brief.id, { content: e.target.value })}
+652:                  onClick={() => generateSingleContent(brief)}
+658:                    {!brief.content && brief.status !== 'content_generated' ? (
+668:                          <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">{brief.content.length} ký tự</span>
+669:                          <button onClick={() => navigator.clipboard.writeText(brief.content)} className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-accent-primary bg-accent-primary/10 hover:bg-accent-primary/20 rounded-lg transition-colors" title="Copy content">
+675:                          value={brief.content}
+676:                          onChange={(e) => updateBrief(brief.id, { content: e.target.value })}
+695:                  placeholder="Sửa mô tả media..."
+700:                  onClick={() => generateSingleImage(brief)}
+725:                            onClick={() => setPreviewMedia({ url: brief.imageUrl, type: brief.mediaFormat === 'Video' ? 'video' : 'image' })}
+744:                          <label className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2 flex items-center gap-1.5"><UploadCloud size={14}/> Link media public</label>
+790:                                    content: item.content,
+803:                            {item.content && (
+805:                                {item.content}
+897:    // Luôn cho phép retry cả content và image
+898:    await generateContent();
+899:    await generateImage();
+909:      updateBriefField(id, 'mediaReference', base64);
+935:        // For others, we can try reading as text if we want to extract content, 
+974:  const [filterTab, setFilterTab] = useState<'all' | 'done' | 'pending' | 'incomplete' | 'review_content' | 'review_media'>(config.FILTER_TAB || 'all');
+1049:                          updateBriefField(brief.id, 'content', item.content);
+1064:                          {item.content}
+1279:      // Always save to localStorage immediately for maximum persistence
+1555:        content: b.status === 'pending' ? (config.COL_CONTENT ? (b.rawData[config.COL_CONTENT] || '') : '') : b.content,
+1652:      const contentIdx = headers.indexOf(newConfig.COL_CONTENT);
+1655:      const briefMediaIdx = headers.findIndex(h => h.toLowerCase().includes('brief media'));
+1682:        const rowContent = contentIdx !== -1 ? (row[contentIdx] || '') : '';
+1689:        const hasContent = !!(existingBrief && existingBrief.status !== 'pending' ? existingBrief.content : rowContent);
+1712:          content: existingBrief && existingBrief.status !== 'pending' ? existingBrief.content : rowContent,
+1718:          mediaFormat: existingBrief ? existingBrief.mediaFormat : 'Ảnh',
+1719:          mediaSize: existingBrief ? existingBrief.mediaSize : '1:1',
+1720:          mediaReference: existingBrief ? existingBrief.mediaReference : '',
+1743:  const generateSingleContent = async (brief: Brief) => {
+1747:      updateBrief(brief.id, { status: 'generating_content' });
+1748:      addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
+1765:      const prompt = `Bạn là chuyên gia viết content marketing.
+1775:      const response = await ai.models.generateContent({
+1777:        contents: prompt,
+1780:      const content = response.text || "";
+1781:      updateBrief(brief.id, { content, status: 'content_generated', statusDetail: 'Đã tạo Content' });
+1782:      addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
+1786:      addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${error.message}`, 'error');
+1790:  const generateSingleImage = async (brief: Brief) => {
+1793:    await generateImage(true);
+1797:  const generateContent = async () => {
+1827:          addLog('Đã dừng quá trình tạo content.', 'info');
+1839:          addLog(`Đang tạo content cho dòng ${brief.rowIndex}...`, 'info');
+1856:          const prompt = `Bạn là chuyên gia viết content marketing.
+1864:- Viết content chi tiết, hấp dẫn, phù hợp với brief
+1868:- Xuất content dạng text thuần, không dùng markdown
+1892:              response = await ai.models.generateContent({
+1894:                contents: [{ parts }],
+1905:          const content = response.text || '';
+1911:                content,
+1915:                status: 'content_generated',
+1916:                statusDetail: 'Đã tạo content'
+1920:                content, 
+1921:                status: 'content_generated', 
+1922:                statusDetail: 'Đã tạo content',
+1928:          addLog(`Đã tạo content cho dòng ${brief.rowIndex}.`, 'success');
+1935:          addLog(`Lỗi tạo content dòng ${brief.rowIndex}: ${err.message}`, 'error');
+1950:  const generateImage = async (isForced = true) => {
+2012:          updateBrief(brief.id, { status: 'generating_media' });
+2013:          if (brief.mediaFormat === 'Video') {
+2019:CONTENT CHI TIẾT: ${brief.content || ''}`;
+2021:            let operation = await ai.models.generateVideos({
+2022:              model: 'veo-3.1-fast-generate-preview',
+2027:                aspectRatio: brief.mediaSize === '16:9' ? '16:9' : '9:16'
+2036:            const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+2044:                    content: b.content,
+2047:                    status: 'image_generated',
+2053:                    status: 'image_generated',
+2071:                promptResponse = await ai.models.generateContent({
+2073:                  contents: `Bạn là chuyên gia thiết kế hình ảnh và video marketing.
+2079:- CONTENT CHI TIẾT: ${brief.content || 'Nội dung bài viết đi kèm'}
+2081:- TỈ LỆ: ${brief.mediaSize || '1:1'}
+2105:            if (brief.mediaReference) {
+2106:              if (brief.mediaReference.startsWith('data:')) {
+2107:                const base64Data = brief.mediaReference.split(',')[1];
+2108:                const mimeType = brief.mediaReference.split(';')[0].split(':')[1];
+2117:                parts.push({ text: `Dựa vào phong cách của ảnh mẫu tại link này: ${brief.mediaReference}.` });
+2129:                imageResponse = await ai.models.generateContent({
+2131:                  contents: { parts },
+2134:                      aspectRatio: (brief.mediaSize || "1:1") as any
+2153:            const base64Data = candidate?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+2160:                    content: b.content,
+2164:                    status: 'image_generated',
+2170:                    status: 'image_generated',
+2191:          // Thêm khoảng nghỉ để tránh rate limit (ảnh tốn nhiều tài nguyên hơn content)
+2345:          if (!currentBase64 && brief.mediaFormat !== 'Video') {
+2355:                const promptResponse = await ai.models.generateContent({
+2357:                  contents: `Bạn là chuyên gia thiết kế hình ảnh marketing. Hãy tạo một PROMPT tiếng Anh chi tiết để AI tạo ảnh dựa trên các thông tin sau:
+2360:                  - Nội dung bài viết (Content): ${brief.content || 'Không có'}
+2361:                  - Mô tả media mong muốn: ${brief.briefMedia || 'Professional marketing photo'}
+2362:                  - Ảnh tham chiếu (nếu có): ${brief.mediaReference || 'Không có'}
+2368:                  - Tỉ lệ ảnh: ${brief.mediaSize || '1:1'}.
+2394:                imageResponse = await ai.models.generateContent({
+2396:                  contents: { parts: [{ text: imagePrompt }] },
+2399:                      aspectRatio: (brief.mediaSize || "1:1") as any
+2408:                   brief.mediaReference = ''; 
+2423:            currentBase64 = candidate?.content?.parts?.find((p: any) => p.inlineData)?.inlineData?.data;
+2428:              const textExplanation = candidate?.content?.parts?.find((p: any) => p.text)?.text;
+2440:            setBriefs(prev => prev.map(b => b.id === brief.id ? { ...b, imageBase64: currentBase64, status: 'image_generated' } : b));
+2444:          if (currentBase64 && brief.mediaFormat !== 'Video' && !currentImageUrl) {
+2462:          } else if (brief.mediaFormat === 'Video') {
+2507:        const contentColIdx = sheetHeaders.indexOf(config.COL_CONTENT);
+2510:        const mediaFormatColIdx = sheetHeaders.indexOf(config.COL_MEDIA_FORMAT);
+2511:        const mediaRefColIdx = sheetHeaders.indexOf(config.COL_MEDIA_REF);
+2527:          if (brief.content && contentColIdx !== -1) {
+2529:              range: `'${tabTitle}'!${getColLetter(contentColIdx)}${brief.rowIndex}`,
+2530:              values: [[brief.content]]
+2545:          if (brief.mediaFormat && mediaFormatColIdx !== -1) {
+2547:              range: `'${tabTitle}'!${getColLetter(mediaFormatColIdx)}${brief.rowIndex}`,
+2548:              values: [[brief.mediaFormat]]
+2551:          if (brief.mediaReference && mediaRefColIdx !== -1 && !brief.mediaReference.startsWith('data:')) {
+2553:              range: `'${tabTitle}'!${getColLetter(mediaRefColIdx)}${brief.rowIndex}`,
+2554:              values: [[brief.mediaReference]]
+2607:            content: brief.content || '',
+2610:            mediaFormat: brief.mediaFormat || 'Ảnh',
+2611:            mediaReference: brief.mediaReference || ''
+2624:          contentCol: config.COL_CONTENT,
+2627:          mediaFormatCol: config.COL_MEDIA_FORMAT,
+2628:          mediaRefCol: config.COL_MEDIA_REF,
+2660:    if (filterTab === 'review_content') return !brief.content && (!!brief.imageUrl || !!brief.imageBase64);
+2661:    if (filterTab === 'review_media') return !!brief.content && (!brief.imageUrl && !brief.imageBase64);
+2941:                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${filterTab === 'review_content' || filterTab === 'review_media' ? 'bg-accent-primary text-white shadow-md shadow-accent-primary/25' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
+2949:                          onClick={() => { setFilterTab('review_content'); setShowReviewDropdown(false); }}
+2950:                          className={`block w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${filterTab === 'review_content' ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
+2955:                          onClick={() => { setFilterTab('review_media'); setShowReviewDropdown(false); }}
+2956:                          className={`block w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${filterTab === 'review_media' ? 'bg-accent-primary text-white' : 'text-text-secondary hover:text-text-primary hover:bg-white/5'}`}
+2973:                  onClick={generateContent} 
+2991:                  onClick={() => generateImage(true)} 
+3200:                            placeholder="Nhập mô tả media..."
+3209:                                value={brief.mediaFormat || 'Ảnh'}
+3210:                                onChange={(e) => updateBriefField(brief.id, 'mediaFormat', e.target.value as any)}
+3220:                                value={brief.mediaSize || '1:1'}
+3221:                                onChange={(e) => updateBriefField(brief.id, 'mediaSize', e.target.value)}
+3223:                                {brief.mediaFormat === 'Video' ? (
+3248:                                value={brief.mediaReference?.startsWith('data:') ? '' : (brief.mediaReference || '')}
+3249:                                onChange={(e) => updateBriefField(brief.id, 'mediaReference', e.target.value)}
+3252:                              {brief.mediaReference?.startsWith('data:') && (
+3257:                              {brief.mediaReference && (
+3259:                                  onClick={() => updateBriefField(brief.id, 'mediaReference', '')}
+3359:                type: brief.mediaFormat === 'Video' ? 'video' : 'image' 
+3443:            generateSingleContent={generateSingleContent}
+3444:            generateSingleImage={generateSingleImage}
+3724:                          <p className="text-base text-text-secondary">Cột đích để hệ thống tự động điền đường dẫn hình ảnh hoặc video sau khi tạo. Giúp quản lý tài nguyên media dễ dàng.</p>
+4134:  var payload = JSON.parse(e.postData.contents);
+4140:  var contentColIdx = headers.indexOf(payload.contentCol) + 1;
+4143:  var mediaFormatColIdx = headers.indexOf(payload.mediaFormatCol) + 1;
+4144:  var mediaRefColIdx = headers.indexOf(payload.mediaRefCol) + 1;
+4147:    if (contentColIdx > 0 && item.content) {
+4148:      tab.getRange(item.rowIndex, contentColIdx).setValue(item.content);
+4156:    if (mediaFormatColIdx > 0 && item.mediaFormat) {
+4157:      tab.getRange(item.rowIndex, mediaFormatColIdx).setValue(item.mediaFormat);
+4159:    if (mediaRefColIdx > 0 && item.mediaReference && item.mediaReference.indexOf('data:') !== 0) {
+4160:      tab.getRange(item.rowIndex, mediaRefColIdx).setValue(item.mediaReference);

@@ -1,0 +1,24 @@
+225:                <label key={opt} className="flex items-center gap-2.5 px-2.5 py-2 hover:bg-bg-hover rounded-md cursor-pointer group transition-colors">
+294:                  key={opt}
+431:            key={brief.id}
+523:                    <div key={key} className="flex flex-col gap-1 text-xs">
+567:                          <option key={size} value={size}>{size}</option>
+637:              key="content"
+684:              key="image"
+762:              key="history"
+779:                          <div key={item.id} className="bg-bg-secondary border border-white/5 rounded-xl p-5 space-y-4 hover:border-accent-primary/30 transition-all group shadow-sm">
+994:        return <a key={`log-url-${part}-${i}`} href={part} target="_blank" rel="noreferrer" className="underline text-accent-primary break-all">{part}</a>;
+996:      return <span key={`log-text-${part}-${i}`}>{part}</span>;
+1040:                  <div key={item.id} className="p-4 bg-bg-tertiary rounded-2xl border border-border-subtle hover:border-accent-primary/50 transition-all group">
+2028:              const videoUrl = `${downloadLink}?x-goog-api-key=${config.GEMINI_API_KEY}`;
+2252:            const res = await fetch(`https://api.imgbb.com/1/upload?key=${config.IMGBB_API_KEY}`, {
+2439:            const res = await fetch(`https://api.imgbb.com/1/upload?key=${config.IMGBB_API_KEY}`, {
+2844:                      <option key={ss.id} value={ss.id} className="bg-bg-tertiary text-text-primary">{ss.name}</option>
+2869:                      <option key={tab.id} value={tab.id} className="bg-bg-tertiary text-text-primary">{tab.title}</option>
+2916:                      key={tab.id}
+3144:                            key={brief.id} 
+3400:                      key={log.id} 
+3881:                                    <option key={ss.id} value={ss.id}>{ss.name}</option>
+3936:                                      <option key={tab.id} value={tab.id}>{tab.title}</option>
+4030:                        <div key={`kb-link-${link}-${idx}`} className="flex gap-2">
+4074:                          <div key={`kb-file-${file.name}-${idx}`} className="flex items-center justify-between p-2 bg-bg-tertiary border border-border-subtle rounded-lg group">
