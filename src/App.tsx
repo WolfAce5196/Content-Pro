@@ -3062,6 +3062,7 @@ YÊU CẦU PROMPT:
                           onClick={() => {
                             stopProcessingRef.current = true;
                             setIsPaused(false);
+                            setIsProcessing(false);
                           }}
                           className="text-status-danger hover:scale-110 transition-all flex items-center gap-2 font-bold text-[10px] tracking-wider"
                           title="Dừng hẳn"
