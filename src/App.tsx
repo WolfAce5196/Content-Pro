@@ -839,6 +839,7 @@ export default function App() {
     return () => clearTimeout(handler);
   }, [config, user]);
   const [showConfig, setShowConfig] = useState(true);
+  const [isOverwrite, setIsOverwrite] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showComponentDesc, setShowComponentDesc] = useState(false);
   const [briefs, setBriefs] = useState<Brief[]>([]);
@@ -2354,7 +2355,7 @@ YÊU CẦU PROMPT:
           let currentBase64 = brief.imageBase64;
 
           // 1. Generate if needed
-          if (!currentBase64 && brief.mediaFormat !== 'Video') {
+          if ((!currentBase64 || isOverwrite) && brief.mediaFormat !== 'Video') {
             addLog(`[1/2] Đang tạo ảnh AI cho dòng ${brief.rowIndex}...`, 'info');
             
             // Step A: Generate Prompt with Retry
@@ -2536,40 +2537,40 @@ YÊU CẦU PROMPT:
           const brief = briefs.find(b => b.id === id);
           if (!brief) continue;
           
-          if (brief.content && contentColIdx !== -1) {
+          if (contentColIdx !== -1) {
             data.push({
               range: `'${tabTitle}'!${getColLetter(contentColIdx)}${brief.rowIndex}`,
-              values: [[brief.content]]
+              values: [[brief.content || '']]
             });
           }
-          if (brief.imageUrl && imageColIdx !== -1) {
+          if (imageColIdx !== -1) {
             data.push({
               range: `'${tabTitle}'!${getColLetter(imageColIdx)}${brief.rowIndex}`,
-              values: [[brief.imageUrl]]
+              values: [[brief.imageUrl || '']]
             });
           }
-          if (brief.briefMedia && briefMediaColIdx !== -1) {
+          if (briefMediaColIdx !== -1) {
             data.push({
               range: `'${tabTitle}'!${getColLetter(briefMediaColIdx)}${brief.rowIndex}`,
-              values: [[brief.briefMedia]]
+              values: [[brief.briefMedia || '']]
             });
           }
-          if (brief.mediaFormat && mediaFormatColIdx !== -1) {
+          if (mediaFormatColIdx !== -1) {
             data.push({
               range: `'${tabTitle}'!${getColLetter(mediaFormatColIdx)}${brief.rowIndex}`,
-              values: [[brief.mediaFormat]]
+              values: [[brief.mediaFormat || '']]
             });
           }
-          if (brief.mediaReference && mediaRefColIdx !== -1 && !brief.mediaReference.startsWith('data:')) {
+          if (mediaRefColIdx !== -1 && (!brief.mediaReference || !brief.mediaReference.startsWith('data:'))) {
             data.push({
               range: `'${tabTitle}'!${getColLetter(mediaRefColIdx)}${brief.rowIndex}`,
-              values: [[brief.mediaReference]]
+              values: [[brief.mediaReference || '']]
             });
           }
         }
         
         if (data.length === 0) {
-           addLog('Không có dữ liệu mới để lưu hoặc không tìm thấy cột.', 'info');
+           addLog('Không có cột nào hợp lệ để lưu.', 'info');
            setIsProcessing(false);
            return;
         }
@@ -2979,10 +2980,23 @@ YÊU CẦU PROMPT:
                     Bỏ chọn
                   </button>
                 )}
+                
+                <div className="flex items-center gap-2 ml-2 pl-4 border-l border-white/10">
+                  <input
+                    type="checkbox"
+                    id="overwrite-data"
+                    className="w-4 h-4 rounded border-white/10 bg-bg-tertiary text-accent-primary focus:ring-accent-primary/30 transition-all cursor-pointer shadow-inner"
+                    checked={isOverwrite}
+                    onChange={e => setIsOverwrite(e.target.checked)}
+                  />
+                  <label htmlFor="overwrite-data" className="text-[11px] text-accent-primary font-bold uppercase tracking-widest cursor-pointer select-none">
+                    Ghi đè dữ liệu cũ
+                  </label>
+                </div>
               </div>
               <div className="flex items-center bg-bg-tertiary/80 p-1 rounded-xl border border-white/10 shadow-inner">
                 <button 
-                  onClick={() => generateContent(true)} 
+                  onClick={() => generateContent(isOverwrite)} 
                   disabled={isProcessing || selectedIds.size === 0} 
                   className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
                 >
@@ -3000,7 +3014,7 @@ YÊU CẦU PROMPT:
                 </button>
                 <div className="w-px h-4 bg-white/5 mx-1"></div>
                 <button 
-                  onClick={() => generateImage(true)} 
+                  onClick={() => generateImage(isOverwrite)} 
                   disabled={isProcessing || selectedIds.size === 0} 
                   className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-bold uppercase tracking-widest rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/5 text-text-primary group relative overflow-hidden"
                 >
@@ -4156,20 +4170,22 @@ YÊU CẦU PROMPT:
   var mediaRefColIdx = headers.indexOf(payload.mediaRefCol) + 1;
 
   data.forEach(function(item) {
-    if (contentColIdx > 0 && item.content) {
-      tab.getRange(item.rowIndex, contentColIdx).setValue(item.content);
+    if (contentColIdx > 0) {
+      tab.getRange(item.rowIndex, contentColIdx).setValue(item.content || '');
     }
-    if (imageColIdx > 0 && item.imageUrl) {
-      tab.getRange(item.rowIndex, imageColIdx).setValue(item.imageUrl);
+    if (imageColIdx > 0) {
+      tab.getRange(item.rowIndex, imageColIdx).setValue(item.imageUrl || '');
     }
-    if (briefMediaColIdx > 0 && item.briefMedia) {
-      tab.getRange(item.rowIndex, briefMediaColIdx).setValue(item.briefMedia);
+    if (briefMediaColIdx > 0) {
+      tab.getRange(item.rowIndex, briefMediaColIdx).setValue(item.briefMedia || '');
     }
-    if (mediaFormatColIdx > 0 && item.mediaFormat) {
-      tab.getRange(item.rowIndex, mediaFormatColIdx).setValue(item.mediaFormat);
+    if (mediaFormatColIdx > 0) {
+      tab.getRange(item.rowIndex, mediaFormatColIdx).setValue(item.mediaFormat || '');
     }
     if (mediaRefColIdx > 0 && item.mediaReference && item.mediaReference.indexOf('data:') !== 0) {
       tab.getRange(item.rowIndex, mediaRefColIdx).setValue(item.mediaReference);
+    } else if (mediaRefColIdx > 0 && !item.mediaReference) {
+      tab.getRange(item.rowIndex, mediaRefColIdx).setValue('');
     }
   });
 
